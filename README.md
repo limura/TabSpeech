@@ -1,5 +1,7 @@
 TabSpeech は表示されているタブの文章を読み上げる chrome extension です。
 
+Chrome ウェブストアにて[公開しています](https://chrome.google.com/webstore/detail/tabspeech/ccojlmmbakjcoddbepmmogiobbmmhmjc)。
+
 # 使い方
 
 1. 読み上げを開始したい位置を範囲選択
