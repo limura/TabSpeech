@@ -18,10 +18,10 @@ Chrome ウェブストアにて[公開しています](https://chrome.google.com
 
 # 更新履歴
 
-** Version 1.1
+## Version 1.1
 話者や読み上げ速度などの設定が行えるようにしました。TabSpeechのアイコンを右クリック→オプション から手繰れます。
 
-** Version 1.1.1
+## Version 1.1.1
 SiteInfo の読み込みに失敗しているような挙動があったので修正します。
 
 # 既知の問題
