@@ -60,7 +60,16 @@ function StatusEndSpeech(){
 
 function RunStartSpeech(tabId, url){
   let siteInfoArray = SearchSiteInfo(url);
-  chrome.tabs.sendMessage(tabId, {"type": "KickSpeech", "SiteInfoArray": siteInfoArray});
+  console.log("RunStartSpeech", localStorage["lang"], localStorage);
+  chrome.tabs.sendMessage(tabId, {
+    "type": "KickSpeech",
+    "SiteInfoArray": siteInfoArray,
+    "lang": localStorage["lang"],
+    "voice": localStorage["voice"],
+    "pitch": localStorage["pitch"],
+    "rate": localStorage["rate"],
+    "volume": localStorage["volume"]
+  });
   StatusStartSpeech();
 }
 
@@ -105,7 +114,6 @@ function RunInCurrentTab(func){
     currentWindow: true,
     active: true
   }, function(tabArray){
-    console.log("RunInCurrentTab:", tabArray);
     if(tabArray.length > 0){
       func(tabArray[0]);
     }
@@ -135,7 +143,6 @@ function ResumeSpeech(){
 
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse){
-    console.log("onMessage", request);
     switch(request.type){
     case "StartSpeech":
       StatusStartSpeech();
@@ -161,3 +168,4 @@ chrome.runtime.onMessage.addListener(
     }
   }
 );
+

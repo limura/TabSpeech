@@ -15,6 +15,37 @@ function ResumeSpeech(){
   speechSynthesis.resume();
 }
 
+function CreateVoiceSetting(lang, voice, pitch, rate, volume){
+  return {
+    "lang": lang,
+    "voice": voice,
+    "pitch": pitch,
+    "rate": rate,
+    "volume": volume,
+  };
+}
+
+function ApplyVoiceSetting(utterance, voiceSetting){
+  if(voiceSetting.lang){
+    let voiceArray = getVoiceList();
+    for(voice of voiceArray){
+      if(voice.lang == voiceSetting.lang && voiceSetting.voice && voice.name == voiceSetting.voice){
+        utterance.voice = voice;
+        break;
+      }
+    }
+  }
+  if(typeof voiceSetting.pitch != "undefined"){
+    utterance.pitch = voiceSetting.pitch;
+  }
+  if(typeof voiceSetting.rate != "undefined"){
+    utterance.rate = voiceSetting.rate;
+  }
+  if(typeof voiceSetting.volume != "undefined"){
+    utterance.volume = voiceSetting.volume;
+  }
+}
+
 function GetPageElementArray(SiteInfo){
   if("data" in SiteInfo && "pageElement" in SiteInfo.data){
     return document.evaluate(SiteInfo.data.pageElement, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -143,10 +174,10 @@ function SplitElementFromSelection(elementArray, range){
     let elementRange = new Range();
     elementRange.selectNode(element);
     if(!elementRange){
-      console.log("elementRange", elementRange, element);
+      //console.log("elementRange", elementRange, element);
       continue;
     }
-    console.log("compare", elementRange.compareBoundaryPoints(Range.START_TO_START, range), elementRange.compareBoundaryPoints(Range.START_TO_END, range));
+    //console.log("compare", elementRange.compareBoundaryPoints(Range.START_TO_START, range), elementRange.compareBoundaryPoints(Range.START_TO_END, range));
     if(elementRange.compareBoundaryPoints(Range.START_TO_START, range) <= 0 &&
       elementRange.compareBoundaryPoints(Range.START_TO_END, range) >= 0){
       isHit = true;
@@ -171,14 +202,14 @@ function SplitElementFromSelection(elementArray, range){
 function GenerateWholeText(elementArray, index){
   var text = "";
   elementArray.forEach(function(data){
-    console.log("text += ", data["text"], index);
+    //console.log("text += ", data["text"], index);
     text += data["text"].slice(index);
     index = 0;
   });
   return text;
 }
 
-function SpeechWithPageElementArray(elementArray, nextLink, index){
+function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting){
   StopSpeech();
   let text = GenerateWholeText(elementArray, index);
   if(text.length <= 0){
@@ -187,7 +218,7 @@ function SpeechWithPageElementArray(elementArray, nextLink, index){
   }
   let utterance = new SpeechSynthesisUtterance(text);
   utterance.onboundary = function(event){
-    console.log("SpeechSynthesisUtterance Event onBoundary", event.charIndex, event);
+    //console.log("SpeechSynthesisUtterance Event onBoundary", event.charIndex, event);
     let elementData = SearchElementFromIndex(elementArray, event.charIndex);
     if(elementData){
       HighlightSpeechSentence(elementData.element, elementData.index);
@@ -195,11 +226,11 @@ function SpeechWithPageElementArray(elementArray, nextLink, index){
     BoundarySpeechEventHandle(elementArray, event);
   };
   utterance.onstart = function(event){
-    console.log("SpeechSynthesisUtterance Event onStart", event);
+    //console.log("SpeechSynthesisUtterance Event onStart", event);
     chrome.runtime.sendMessage({"type": "StartSpeech"});
   };
   utterance.onend = function(event){
-    console.log("SpeechSynthesisUtterance Event onEnd", event);
+    //console.log("SpeechSynthesisUtterance Event onEnd", event);
     RemoveHighlightSpeechSentence();
     chrome.runtime.sendMessage({"type": "EndSpeech"});
   };
@@ -207,41 +238,46 @@ function SpeechWithPageElementArray(elementArray, nextLink, index){
   utterance.onmark = function(event){console.log("SpeechSynthesisUtterance Event onMark", event);};
   utterance.onpause = function(event){console.log("SpeechSynthesisUtterance Event onPause", event);};
   utterance.onresume = function(event){console.log("SpeechSynthesisUtterance Event onResume", event);};
-  utterance.rate = 1.4;
-  console.log("speech", text);
+  ApplyVoiceSetting(utterance, voiceSetting);
+  //console.log("speech", text);
   speechSynthesis.speak(utterance);
   return true;
 }
 
-function runSpeech(SiteInfoArray){
+function runSpeech(SiteInfoArray, voiceSetting){
+  //console.log("runSpeech calling", SiteInfoArray, voiceSetting);
   for(var i = 0; i < SiteInfoArray.length; i++){
     let SiteInfo = SiteInfoArray[i];
     var elementArray = extractElementForPageElementArray(GetPageElementArray(SiteInfo));
     let nextLink = GetNextLink(SiteInfo);
-    console.log("SiteInfo", SiteInfo, "elementArray", elementArray);
+    //console.log("SiteInfo", SiteInfo, "elementArray", elementArray);
     let selection = window.getSelection();
     var index = 0;
     if(selection.rangeCount > 0){
       let speechTarget = SplitElementFromSelection(elementArray, selection.getRangeAt(0));
-      console.log("speechTarget", speechTarget);
+      //console.log("speechTarget", speechTarget);
       if(speechTarget){
         elementArray = speechTarget.elementArray;
         index = speechTarget.index;
       }
     }
-    if(elementArray && SpeechWithPageElementArray(elementArray, nextLink, index)){
+    if(elementArray && SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting)){
       return;
     }
   };
-  console.log("runSpeech no SiteInfo hit", SiteInfoArray);
+  //console.log("runSpeech no SiteInfo hit", SiteInfoArray);
 }
 
 chrome.runtime.onMessage.addListener(
   function(message, sender, sendResponse){
-    console.log("onMessage", message, sender, sendResponse);
+    //console.log("onMessage", message, sender, sendResponse);
     switch(message.type){
     case "KickSpeech":
-      runSpeech(message.SiteInfoArray.concat([{"data":{"pageElement": "//body", "nextLink": "", "url": ".*"}}]));
+      //console.log("KickSpeech", message);
+      runSpeech(
+        message.SiteInfoArray.concat([{"data":{"pageElement": "//body", "nextLink": "", "url": ".*"}}]),
+        CreateVoiceSetting(message.lang, message.voice, message.pitch, message.rate, message.volume)
+      );
       break;
     case "StopSpeech":
       StopSpeech();
@@ -258,3 +294,4 @@ chrome.runtime.onMessage.addListener(
   }
 );
 
+//console.log("TabSpeech contentscript loaded.");
