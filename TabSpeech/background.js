@@ -1,16 +1,30 @@
 let expireMillisecond = 100 * 60 * 60 * 1;
-let kotosekaiSiteInfoURL = "http://wedata.net/databases/%E3%81%93%E3%81%A8%E3%81%9B%E3%81%8B%E3%81%84Web%E3%83%9A%E3%83%BC%E3%82%B8%E8%AA%AD%E3%81%BF%E8%BE%BC%E3%81%BF%E7%94%A8%E6%83%85%E5%A0%B1/items_all.json";
-let autopagerizeSiteInfoURL = "http://wedata.net/databases/AutoPagerize/items_all.json";
+let kotosekaiSiteInfoURL = "http://wedata.net/databases/%E3%81%93%E3%81%A8%E3%81%9B%E3%81%8B%E3%81%84Web%E3%83%9A%E3%83%BC%E3%82%B8%E8%AA%AD%E3%81%BF%E8%BE%BC%E3%81%BF%E7%94%A8%E6%83%85%E5%A0%B1/items.json";
+let autopagerizeSiteInfoURL = "http://wedata.net/databases/AutoPagerize/items.json";
 
 var siteInfo = [];
 var siteInfoFetchMillisecond = 0;
+
+function siteInfoSortFunc(a, b){
+  var aLen = 0;
+  var bLen = 0;
+  if('data' in a && 'url' in a.data){
+    aLen = ("" + a.data.url).length;
+  }
+  if('data' in b && 'url' in b.data){
+    bLen = ("" + b.data.url).length;
+  }
+  return bLen - aLen;
+}
 
 function FetchSiteInfo(url){
   fetch(url)
   .then(function(response){
     return response.json();
   }).then(function(json){
+    json.sort(siteInfoSortFunc); // concat する前に sort する。読み込み順の方が優先……ということなのだけれどこれはこれであまりよくない(´・ω・`)
     siteInfo = siteInfo.concat(json);
+    console.log("fetched.", json, siteInfo);
     siteInfoFetchMillisecond = (new Date()).getTime();
   });
 }
@@ -48,6 +62,7 @@ function SearchSiteInfo(url){
       }
     }
   });
+  console.log(url, result);
   return result;
 }
 
