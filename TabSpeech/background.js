@@ -3,7 +3,7 @@ let kotosekaiSiteInfoURL = "http://wedata.net/databases/%E3%81%93%E3%81%A8%E3%81
 let autopagerizeSiteInfoURL = "http://wedata.net/databases/AutoPagerize/items_all.json";
 
 var siteInfo = [];
-var siteInfoFechMillisecond = 0;
+var siteInfoFetchMillisecond = 0;
 
 function FetchSiteInfo(url){
   fetch(url)
@@ -27,7 +27,7 @@ function GetSiteInfo(){
   let thisDate = new Date();
   let expireMs = thisDate.getTime() - expireMillisecond;
   let currentSiteInfo = siteInfo;
-  if(siteInfoFechMillisecond < expireMs){
+  if(siteInfoFetchMillisecond < expireMs){
     UpdateSiteInfo();
   }
   return currentSiteInfo;
