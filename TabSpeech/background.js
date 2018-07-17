@@ -26,10 +26,11 @@ UpdateSiteInfo();
 function GetSiteInfo(){
   let thisDate = new Date();
   let expireMs = thisDate.getTime() - expireMillisecond;
+  let currentSiteInfo = siteInfo;
   if(siteInfoFechMillisecond < expireMs){
     UpdateSiteInfo();
   }
-  return siteInfo;
+  return currentSiteInfo;
 }
 
 function SearchSiteInfo(url){
