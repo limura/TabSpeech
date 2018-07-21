@@ -213,7 +213,7 @@ function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting)
   StopSpeech();
   let text = GenerateWholeText(elementArray, index);
   if(text.length <= 0){
-    console.log("no text found");
+    //console.log("no text found");
     return false;
   }
   let utterance = new SpeechSynthesisUtterance(text);

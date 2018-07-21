@@ -18,22 +18,27 @@ function siteInfoSortFunc(a, b){
 }
 
 function FetchSiteInfo(url){
-  fetch(url)
-  .then(function(response){
-    return response.json();
-  }).then(function(json){
-    json.sort(siteInfoSortFunc); // concat する前に sort する。読み込み順の方が優先……ということなのだけれどこれはこれであまりよくない(´・ω・`)
-    siteInfo = siteInfo.concat(json);
-    console.log("fetched.", json, siteInfo);
-    siteInfoFetchMillisecond = (new Date()).getTime();
+  return new Promise(resolve => {
+    fetch(url)
+    .then(function(response){
+      return response.json();
+    }).then(function(json){
+      json.sort(siteInfoSortFunc);
+      resolve(json);
+    });
   });
 }
 
-async function UpdateSiteInfo(){
-  siteInfo = [];
-  await FetchSiteInfo(kotosekaiSiteInfoURL);
-  await FetchSiteInfo(autopagerizeSiteInfoURL);
+async function UpdateSiteInfoAsync(){
+  let siteInfoKotosekai = await FetchSiteInfo(kotosekaiSiteInfoURL);
+  let siteInfoAutopagerize = await FetchSiteInfo(autopagerizeSiteInfoURL);
   siteInfoFetchMillisecond = (new Date()).getTime();
+  siteInfo = [].concat(siteInfoKotosekai);
+  siteInfo = siteInfo.concat(siteInfoAutopagerize);
+  //console.log("loaded.", siteInfoKotosekai, siteInfoAutopagerize, siteInfo);
+}
+function UpdateSiteInfo(){
+  UpdateSiteInfoAsync();
 }
 UpdateSiteInfo();
 
@@ -76,7 +81,7 @@ function StatusEndSpeech(){
 
 function RunStartSpeech(tabId, url){
   let siteInfoArray = SearchSiteInfo(url);
-  console.log("RunStartSpeech", localStorage["lang"], localStorage);
+  //console.log("RunStartSpeech", localStorage["lang"], localStorage);
   chrome.tabs.sendMessage(tabId, {
     "type": "KickSpeech",
     "SiteInfoArray": siteInfoArray,
