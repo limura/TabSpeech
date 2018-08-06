@@ -244,10 +244,36 @@ function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting)
   return true;
 }
 
+function runSpeechWithSiteInfo(SiteInfo, voiceSetting){
+  var elementArray = extractElementForPageElementArray(GetPageElementArray(SiteInfo));
+  let nextLink = GetNextLink(SiteInfo);
+  //console.log("SiteInfo", SiteInfo, "elementArray", elementArray);
+  let selection = window.getSelection();
+  var index = -1;
+  if(selection.rangeCount > 0){
+    let speechTarget = SplitElementFromSelection(elementArray, selection.getRangeAt(0));
+    //console.log("speechTarget", speechTarget);
+    if(speechTarget){
+      elementArray = speechTarget.elementArray;
+      index = speechTarget.index;
+    }
+  }else{
+    index = 0;
+  }
+  if(index >= 0 && elementArray && SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting)){
+    return true;
+  }
+  return false;
+}
+
 function runSpeech(SiteInfoArray, voiceSetting){
   //console.log("runSpeech calling", SiteInfoArray, voiceSetting);
   for(var i = 0; i < SiteInfoArray.length; i++){
     let SiteInfo = SiteInfoArray[i];
+    if(runSpeechWithSiteInfo(SiteInfo, voiceSetting)){
+      return;
+    }
+    /*
     var elementArray = extractElementForPageElementArray(GetPageElementArray(SiteInfo));
     let nextLink = GetNextLink(SiteInfo);
     //console.log("SiteInfo", SiteInfo, "elementArray", elementArray);
@@ -264,8 +290,11 @@ function runSpeech(SiteInfoArray, voiceSetting){
     if(elementArray && SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting)){
       return;
     }
+    */
   };
   //console.log("runSpeech no SiteInfo hit", SiteInfoArray);
+  let dummySiteInfo = {"data":{"pageElement": "*", "url": "^https?://"}};
+  runSpeechWithSiteInfo(dummySiteInfo, voiceSetting);
 }
 
 chrome.runtime.onMessage.addListener(
