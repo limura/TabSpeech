@@ -21,8 +21,12 @@ function PauseButtonClicked(){
 function ResumeButtonClicked(){
   SendMessage({"type": "RunResumeSpeech"});
 }
+function OpenOptionsPageButtonClicked(){
+  chrome.runtime.openOptionsPage();
+}
 
 document.getElementById("SpeechButton").onclick = SpeechButtonClicked;
 document.getElementById("StopButton").onclick = StopButtonClicked;
 document.getElementById("PauseButton").onclick = PauseButtonClicked;
 document.getElementById("ResumeButton").onclick = ResumeButtonClicked;
+document.getElementById("OpenOptionsPage").onclick = OpenOptionsPageButtonClicked;
