@@ -17,6 +17,8 @@ Chrome ウェブストアにて[公開しています](https://chrome.google.com
 読み上げを開始した時に表示されていないものは読み上げられません。
 つまり、AutoPagerize が効くページの場合、「先に」AutoPagerize で全ページを表示しておいてから読み上げを開始しないと、全てのページを読み上げることはできません。
 
+読み上げには WebSpeech API を利用しています。(つまり、chrome のアドレスバーに `javascript:window.speechSynthesis.speak(new SpeechSynthesisUtterance("こんにちは世界"))` と入力して読み上げられなければ駄目です)
+
 なお、AutoPagerize が効くページの場合には、AutoPagerize の pageElement(本文Element) に当たる部分のみを読み上げようと努力します。
 
 # 更新履歴
