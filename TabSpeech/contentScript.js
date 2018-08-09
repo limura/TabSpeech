@@ -237,7 +237,7 @@ function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting)
     chrome.runtime.sendMessage({"type": "StartSpeech"});
   };
   utterance.onend = function(event){
-    console.log("SpeechSynthesisUtterance Event onEnd", event);
+    //console.log("SpeechSynthesisUtterance Event onEnd", event);
     RemoveHighlightSpeechSentence();
     chrome.runtime.sendMessage({"type": "EndSpeech"});
     checkRepeat(elementArray, nextLink, index, voiceSetting);
