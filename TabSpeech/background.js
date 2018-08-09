@@ -81,7 +81,7 @@ function StatusEndSpeech(){
 
 function RunStartSpeech(tabId, url){
   let siteInfoArray = SearchSiteInfo(url);
-  //console.log("RunStartSpeech", localStorage["lang"], localStorage);
+  //console.log("RunStartSpeech", localStorage["lang"], localStorage, tabId);
   chrome.tabs.sendMessage(tabId, {
     "type": "KickSpeech",
     "SiteInfoArray": siteInfoArray,
