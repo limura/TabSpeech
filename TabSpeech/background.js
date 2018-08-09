@@ -79,11 +79,11 @@ function StatusEndSpeech(){
   status = "stop";
 }
 
-function RunStartSpeech(tabId, url){
+function RunStartSpeech(tabId, url, kickType){
   let siteInfoArray = SearchSiteInfo(url);
   //console.log("RunStartSpeech", localStorage["lang"], localStorage, tabId);
   chrome.tabs.sendMessage(tabId, {
-    "type": "KickSpeech",
+    "type": kickType,
     "SiteInfoArray": siteInfoArray,
     "lang": localStorage["lang"],
     "voice": localStorage["voice"],
@@ -112,7 +112,7 @@ function KickSpeech(tabId, url){
     RunStopSpeech(tabId);
     return;
   }
-  RunStartSpeech(tabId, url);
+  RunStartSpeech(tabId, url, "KickSpeech");
 }
 
 chrome.pageAction.onClicked.addListener(function(tab){KickSpeech(tab.id, tab.url);});
@@ -143,7 +143,7 @@ function RunInCurrentTab(func){
 
 function StartSpeech(){
   RunInCurrentTab(function(tab){
-    RunStartSpeech(tab.id, tab.url);
+    RunStartSpeech(tab.id, tab.url, "KickSpeech");
   });
 }
 function StopSpeech(){
@@ -159,6 +159,11 @@ function PauseSpeech(){
 function ResumeSpeech(){
   RunInCurrentTab(function(tab){
     RunResumeSpeech(tab.id);
+  });
+}
+function StartSpeechRepeatMode(){
+  RunInCurrentTab(function(tab){
+    RunStartSpeech(tab.id, tab.url, "KickSpeechRepeatMode");
   });
 }
 
@@ -183,6 +188,9 @@ chrome.runtime.onMessage.addListener(
       break;
     case "RunResumeSpeech":
       ResumeSpeech();
+      break;
+    case "KickSpeechRepeatMode":
+      StartSpeechRepeatMode();
       break;
     default:
       break;

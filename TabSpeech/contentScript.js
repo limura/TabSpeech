@@ -1,3 +1,4 @@
+var isRepeat = false;
 let speechSynthesis = window.speechSynthesis;
 function getVoiceList() {
   let voices = speechSynthesis.getVoices();
@@ -209,6 +210,12 @@ function GenerateWholeText(elementArray, index){
   return text;
 }
 
+function checkRepeat(elementArray, nextLink, index, voiceSetting){
+  if(isRepeat){
+    SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting);
+  }
+}
+
 function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting){
   StopSpeech();
   let text = GenerateWholeText(elementArray, index);
@@ -230,9 +237,10 @@ function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting)
     chrome.runtime.sendMessage({"type": "StartSpeech"});
   };
   utterance.onend = function(event){
-    //console.log("SpeechSynthesisUtterance Event onEnd", event);
+    console.log("SpeechSynthesisUtterance Event onEnd", event);
     RemoveHighlightSpeechSentence();
     chrome.runtime.sendMessage({"type": "EndSpeech"});
+    checkRepeat(elementArray, nextLink, index, voiceSetting);
   };
   utterance.onerror = function(event){console.log("SpeechSynthesisUtterance Event onError", event);};
   utterance.onmark = function(event){console.log("SpeechSynthesisUtterance Event onMark", event);};
@@ -308,7 +316,15 @@ chrome.runtime.onMessage.addListener(
         CreateVoiceSetting(message.lang, message.voice, message.pitch, message.rate, message.volume)
       );
       break;
+    case "KickSpeechRepeatMode":
+      isRepeat = true;
+      runSpeech(
+        message.SiteInfoArray.concat([{"data":{"pageElement": "//body", "nextLink": "", "url": ".*"}}]),
+        CreateVoiceSetting(message.lang, message.voice, message.pitch, message.rate, message.volume)
+      );
+      break;
     case "StopSpeech":
+      isRepeat = false;
       StopSpeech();
       break;
     case "PauseSpeech":
