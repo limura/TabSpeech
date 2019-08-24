@@ -94,6 +94,10 @@ function getTestText(){
   return text;
 }
 
+function getIsScrollEnabled(){
+  return document.getElementById("isScrollEnabled").checked ? "true" : "false";
+}
+
 function testButtonClicked(speechSynthesis, voices){
   speechSynthesis.cancel();
   let testText = getTestText();
@@ -136,6 +140,9 @@ function saveButtonClicked(voices, savedInformationElement){
   localStorage["pitch"] = getPitch();
   localStorage["rate"] = getRate();
   localStorage["volume"] = getVolume();
+  localStorage["isScrollEnabled"] = getIsScrollEnabled();
+
+console.log("saved localStorage", localStorage);
 
   savedInformationElement.innerHTML = "saved!";
   setTimeout(function(){
@@ -173,6 +180,14 @@ function loadSettings(voices){
   if("volume" in localStorage){
     document.getElementById("volume").value = localStorage.volume;
   }
+  if("isScrollEnabled" in localStorage){
+    let isScrollEnabled = localStorage.isScrollEnabled;
+    if(isScrollEnabled == "false"){
+      document.getElementById("isScrollEnabled").checked = false;
+    }else{
+      document.getElementById("isScrollEnabled").checked = true;
+    }
+  }
 }
 
 function clearSettings(){
@@ -181,6 +196,7 @@ function clearSettings(){
   delete localStorage.removeItem("pitch");
   delete localStorage.removeItem("rate");
   delete localStorage.removeItem("volume");
+  delete localStorage.ramogeItem("isScrollEnabled");
   location.reload();
 }
 
@@ -212,6 +228,10 @@ function init(){
   };
   document.getElementById("voiceSettingReset").onclick = clearSettings;
   loadSettings(voices);
+};
+
+document.getElementById('configureShortcuts').onclick = function(e) {
+  chrome.tabs.update({ url: 'chrome://extensions/shortcuts' });
 };
 
 const awaitVoices = new Promise(resolve => speechSynthesis.onvoiceschanged = resolve);

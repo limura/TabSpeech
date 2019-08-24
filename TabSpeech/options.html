@@ -28,9 +28,15 @@ Volume: <input type="range" name="volume" id="volume" min="0" max="1" step="0.01
 sample text: <input type="text" name="testText" id="testText" size="80" value="メロスは激怒した。必ず、かの邪智暴虐の王を除かなければならぬと決意した。"/>
 </div>
 <div>
+<label for="isScrollEnabled" style="cursor: pointer"><input type="checkbox" id="isScrollEnabled" name="isScrollEnabled" value="1"/>Enable force scroll to speech sentence</label>
+</div>
+<div>
 <button id="voiceSelectorTest">Test</button>
 <button id="voiceSettingReset">Reset</button>
 <button id="save">Save</button><span id="savedInfomation"></span>
+</div>
+<div>
+<a id="configureShortcuts" href="chrome://extensions/shortcuts">Set keyboard shortcuts</a>
 </div>
 <script src="options.js"></script>
 </body>

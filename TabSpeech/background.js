@@ -89,7 +89,8 @@ function RunStartSpeech(tabId, url, kickType){
     "voice": localStorage["voice"],
     "pitch": localStorage["pitch"],
     "rate": localStorage["rate"],
-    "volume": localStorage["volume"]
+    "volume": localStorage["volume"],
+    "isScrollEnabled": localStorage["isScrollEnabled"]
   });
   StatusStartSpeech();
 }
@@ -198,3 +199,20 @@ chrome.runtime.onMessage.addListener(
   }
 );
 
+chrome.commands.onCommand.addListener(function(command) {
+  switch(command){
+  case "start-speech":
+    StartSpeech();
+    break;
+  case "stop-speech":
+    StopSpeech();
+    break;
+  case "pause-speech":
+    PauseSpeech();
+    break;
+  case "resume-speech":
+    ResumeSpeech();
+    break;
+  }
+});
+ 

@@ -1,7 +1,7 @@
 {
   "name": "TabSpeech",
   "description": "表示されているタブの文章を読み上げます",
-  "version": "1.3",
+  "version": "1.4",
   "background": { "scripts": ["background.js"] },
   "icons": {
     "16": "icon/TabSpeechIcon16.png",
@@ -24,5 +24,19 @@
     "tabs",
     "*://*/*"
   ],
+  "commands": {
+    "start-speech": {
+      "description": "Start speech"
+    },
+    "stop-speech": {
+      "description": "Stop speech"
+    },
+    "pause-speech": {
+      "description": "Pause speech"
+    },
+    "resume-speech": {
+      "description": "Resume speech"
+    }
+  },
   "manifest_version": 2
 }

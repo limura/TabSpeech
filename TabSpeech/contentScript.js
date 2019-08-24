@@ -16,13 +16,14 @@ function ResumeSpeech(){
   speechSynthesis.resume();
 }
 
-function CreateVoiceSetting(lang, voice, pitch, rate, volume){
+function CreateVoiceSetting(lang, voice, pitch, rate, volume, isScrollEnabled){
   return {
     "lang": lang,
     "voice": voice,
     "pitch": pitch,
     "rate": rate,
     "volume": volume,
+    "isScrollEnabled": isScrollEnabled,
   };
 }
 
@@ -61,7 +62,27 @@ function GetNextLink(SiteInfo){
   return undefined;
 }
 
-function HighlightSpeechSentence(element, index){
+function ScrollToElement(element, index, margin) {
+  let range = new Range();
+  range.selectNode(element);
+  if(index > 0){
+    range.setStart(element, index);
+  }
+  rect = range.getBoundingClientRect();
+  let x = window.pageXOffset + rect.right + margin;
+  let y = window.pageYOffset + rect.top - window.innerHeight + margin;
+  //window.scroll(x, y);
+  window.scrollTo({top: y, behavior: "smooth"});
+}
+
+function ScrollToIndex(index, margin){
+  let elementData = SearchElementFromIndex(elementArray, index);
+  if(elementData){
+    ScrollToElement(elementData.element, elementData.index, 30);
+  }
+}
+
+function HighlightSpeechSentence(element, index, length){
   //element.parentNode.scrollIntoView(true); // TEXT_NODE には scrollIntoView が無いっぽい(´・ω・`)
   let range = new Range();
   //range.selectNodeContents(element); // selectNodeContents() では子要素が無いと駄目
@@ -69,6 +90,11 @@ function HighlightSpeechSentence(element, index){
   if(index > 0){
     range.setStart(element, index);
   }
+  //if(length <= 0){
+  //  length = 1;
+  //}
+  //range.setEnd(element, index + length);
+
   let selection = window.getSelection();
   selection.removeAllRanges();
   selection.addRange(range);
@@ -151,7 +177,7 @@ function SearchElementFromIndex(elementArray, index){
     let text = data["text"];
     let textLength = text.length;
     if(index < textLength){
-      return {"element": element, "text": text, "index": index}
+      return {"element": element, "text": text, "index": index, "textLength": textLength}
     }
     index -= textLength;
   }
@@ -229,6 +255,9 @@ function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting)
     let elementData = SearchElementFromIndex(elementArray, event.charIndex);
     if(elementData){
       HighlightSpeechSentence(elementData.element, elementData.index);
+      if(voiceSetting.isScrollEnabled == "true"){ // localStorage には boolean が入らないぽいので文字列で入れている
+        ScrollToElement(elementData.element, elementData.index, window.innerHeight * 0.65);
+      }
     }
     BoundarySpeechEventHandle(elementArray, event);
   };
@@ -281,24 +310,6 @@ function runSpeech(SiteInfoArray, voiceSetting){
     if(runSpeechWithSiteInfo(SiteInfo, voiceSetting)){
       return;
     }
-    /*
-    var elementArray = extractElementForPageElementArray(GetPageElementArray(SiteInfo));
-    let nextLink = GetNextLink(SiteInfo);
-    //console.log("SiteInfo", SiteInfo, "elementArray", elementArray);
-    let selection = window.getSelection();
-    var index = 0;
-    if(selection.rangeCount > 0){
-      let speechTarget = SplitElementFromSelection(elementArray, selection.getRangeAt(0));
-      //console.log("speechTarget", speechTarget);
-      if(speechTarget){
-        elementArray = speechTarget.elementArray;
-        index = speechTarget.index;
-      }
-    }
-    if(elementArray && SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting)){
-      return;
-    }
-    */
   };
   //console.log("runSpeech no SiteInfo hit", SiteInfoArray);
   let dummySiteInfo = {"data":{"pageElement": "*", "url": "^https?://"}};
@@ -313,14 +324,14 @@ chrome.runtime.onMessage.addListener(
       //console.log("KickSpeech", message);
       runSpeech(
         message.SiteInfoArray.concat([{"data":{"pageElement": "//body", "nextLink": "", "url": ".*"}}]),
-        CreateVoiceSetting(message.lang, message.voice, message.pitch, message.rate, message.volume)
+        CreateVoiceSetting(message.lang, message.voice, message.pitch, message.rate, message.volume, message.isScrollEnabled)
       );
       break;
     case "KickSpeechRepeatMode":
       isRepeat = true;
       runSpeech(
         message.SiteInfoArray.concat([{"data":{"pageElement": "//body", "nextLink": "", "url": ".*"}}]),
-        CreateVoiceSetting(message.lang, message.voice, message.pitch, message.rate, message.volume)
+        CreateVoiceSetting(message.lang, message.voice, message.pitch, message.rate, message.volume, message.isScrollEnabled)
       );
       break;
     case "StopSpeech":
