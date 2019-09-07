@@ -90,7 +90,8 @@ function RunStartSpeech(tabId, url, kickType){
     "pitch": localStorage["pitch"],
     "rate": localStorage["rate"],
     "volume": localStorage["volume"],
-    "isScrollEnabled": localStorage["isScrollEnabled"]
+    "isScrollEnabled": localStorage["isScrollEnabled"],
+    "isAutopagerizeContinueEnabled": localStorage["isAutopagerizeContinueEnabled"]
   });
   StatusStartSpeech();
 }

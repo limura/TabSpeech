@@ -98,6 +98,10 @@ function getIsScrollEnabled(){
   return document.getElementById("isScrollEnabled").checked ? "true" : "false";
 }
 
+function getIsAutopagerizeContinueEnabled(){
+  return document.getElementById("isAutopagerizeContinueEnabled").checked ? "true" : "false";
+}
+
 function testButtonClicked(speechSynthesis, voices){
   speechSynthesis.cancel();
   let testText = getTestText();
@@ -141,6 +145,7 @@ function saveButtonClicked(voices, savedInformationElement){
   localStorage["rate"] = getRate();
   localStorage["volume"] = getVolume();
   localStorage["isScrollEnabled"] = getIsScrollEnabled();
+  localStorage["isAutopagerizeContinueEnabled"] = getIsAutopagerizeContinueEnabled();
 
 console.log("saved localStorage", localStorage);
 
@@ -159,6 +164,22 @@ function selectSelected(selectElement, targetValue){
       return;
     }
   }
+}
+
+function addDefaultConvertSettings(){
+  let defaultConvertSetting = {
+    "異世界": "いせかい",
+    "猪八戒": "ちょはっかい",
+    "YouTuber": "ユーチューバー",
+    "VTuber": "ブイチューバー",
+    "VRChat": "ブイアールチャット",
+    "Type-C": "タイプシー",
+  };
+  let defaultRegexpConvertSetting = {
+    "[a-z][0-9a-z-+.]*:(//((%[0-9a-f][0-9a-f]|[0-9a-z-._~!$&'()*+,;=:])*@)?(\\[(::(ffff:([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(\\.([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3}|(([0-9a-f]|[1-9a-f][0-9a-f]{1,3})(:([0-9a-f]|[1-9a-f][0-9a-f]{1,3})){0,5})?)|([0-9a-f]|[1-9a-f][0-9a-f]{1,3})(::(([0-9a-f]|[1-9a-f][0-9a-f]{1,3})(:([0-9a-f]|[1-9a-f][0-9a-f]{1,3})){0,4})?|:([0-9a-f]|[1-9a-f][0-9a-f]{1,3})(::(([0-9a-f]|[1-9a-f][0-9a-f]{1,3})(:([0-9a-f]|[1-9a-f][0-9a-f]{1,3})){0,3})?|:([0-9a-f]|[1-9a-f][0-9a-f]{1,3})(::(([0-9a-f]|[1-9a-f][0-9a-f]{1,3})(:([0-9a-f]|[1-9a-f][0-9a-f]{1,3})){0,2})?|:([0-9a-f]|[1-9a-f][0-9a-f]{1,3})(::(([0-9a-f]|[1-9a-f][0-9a-f]{1,3})(:([0-9a-f]|[1-9a-f][0-9a-f]{1,3}))?)?|:([0-9a-f]|[1-9a-f][0-9a-f]{1,3})(::([0-9a-f]|[1-9a-f][0-9a-f]{1,3})?|(:([0-9a-f]|[1-9a-f][0-9a-f]{1,3})){3})))))|v[0-9a-f]\\.([0-9a-z-._~!$&'()*+,;=:])+)\\]|(%[0-9a-f][0-9a-f]|[0-9a-z-._~!$&'()*+,;=])*)(:[1-9][0-9]*)?)?(/(%[0-9a-f][0-9a-f]|[0-9a-z-._~!$&'()*+,;=:@])*)*(\\?(%[0-9a-f][0-9a-f]|[0-9a-z-._~!$&'()*+,;=:@/?])*)?(#(%[0-9a-f][0-9a-f]|[0-9a-z-._~!$&'()*+,;=:@/?])*)?": "",
+  };
+
+  
 }
 
 function loadSettings(voices){
@@ -188,6 +209,14 @@ function loadSettings(voices){
       document.getElementById("isScrollEnabled").checked = true;
     }
   }
+  if("isAutopagerizeContinueEnabled" in localStorage){
+    let isAutopagerizeContinueEnabled = localStorage.isAutopagerizeContinueEnabled;
+    if(isAutopagerizeContinueEnabled == "false"){
+      document.getElementById("isAutopagerizeContinueEnabled").checked = false;
+    }else{
+      document.getElementById("isAutopagerizeContinueEnabled").checked = true;
+    }
+  }
 }
 
 function clearSettings(){
@@ -197,6 +226,7 @@ function clearSettings(){
   delete localStorage.removeItem("rate");
   delete localStorage.removeItem("volume");
   delete localStorage.ramogeItem("isScrollEnabled");
+  delete localStorage.ramogeItem("isAutopagerizeContinueEnabled");
   location.reload();
 }
 
@@ -204,6 +234,12 @@ function createVoiceSelectElement(parentElement, voices, targetLang){
   let voiceNames = getVoiceNames(filterVoiceForLang(voices, targetLang));
   parentElement.innerHTML = '';
   parentElement.appendChild(createSelectElement(voiceNames, "voice", function(element){}));
+}
+
+function addConvertColumn(parentElement, identity, from, to){
+  let columnBody = document.createElement("div");
+  columnBody.innerHTML = '<input type="text" id="from:' + identity + '" value="' + from + '"></input> -> <input type="text" id="to:' + identity + '" value="' + to + '"></input>';
+  parentElement.appendChild(columnBody);
 }
 
 let speechSynthesis = window.speechSynthesis;

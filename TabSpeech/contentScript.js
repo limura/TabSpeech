@@ -1,4 +1,5 @@
 var isRepeat = false;
+var isStopped = true;
 let speechSynthesis = window.speechSynthesis;
 function getVoiceList() {
   let voices = speechSynthesis.getVoices();
@@ -16,7 +17,7 @@ function ResumeSpeech(){
   speechSynthesis.resume();
 }
 
-function CreateVoiceSetting(lang, voice, pitch, rate, volume, isScrollEnabled){
+function CreateVoiceSetting(lang, voice, pitch, rate, volume, isScrollEnabled, isAutopagerizeContinueEnabled){
   return {
     "lang": lang,
     "voice": voice,
@@ -24,6 +25,7 @@ function CreateVoiceSetting(lang, voice, pitch, rate, volume, isScrollEnabled){
     "rate": rate,
     "volume": volume,
     "isScrollEnabled": isScrollEnabled,
+    "isAutopagerizeContinueEnabled": isAutopagerizeContinueEnabled,
   };
 }
 
@@ -230,29 +232,147 @@ function GenerateWholeText(elementArray, index){
   var text = "";
   elementArray.forEach(function(data){
     //console.log("text += ", data["text"], index);
-    text += data["text"].slice(index);
-    index = 0;
+    text += data["text"];
   });
-  return text;
+  return text.slice(index);
 }
 
 function checkRepeat(elementArray, nextLink, index, voiceSetting){
   if(isRepeat){
     SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting);
+    return true;
   }
+  return false;
 }
 
-function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting){
+// 文字列(text)を受け取って、読み替え辞書(convertDicSortedArray)を使って読み替えた文字列リストを生成する。
+// 生成されるデータは
+// [{"before":, "after":}, ...]
+// という形式で、before から after へと読み替えられるべき、という意味合い。
+// convertDicSortedArray は以下の形式
+// [{"before":, "after":}, ...]
+// で、before に格納されている文字列の長さが長い順に sort されているという前提をおく。(最長マッチ向け)
+function GenerateSpeechTextHints(text, convertDicSortedArray) {
+  let textArray = Array.from(text);
+  var resultArray = [];
+  var currentText = "";
+  for(var i = 0; i < textArray.length; i++){
+    let c = textArray[i];
+    var convertData = undefined;
+    for(var convertDicIndex in convertDicSortedArray) {
+      let convertDic = convertDicSortedArray[convertDicIndex];
+      let beforeText = convertDic["before"];
+      let beforeFirstChar = Array.from(beforeText)[0];
+      if(c !== beforeFirstChar) { continue; }
+      let matchTarget = textArray.slice(i, i + beforeText.length).join('');
+      if(matchTarget !== beforeText){ continue; }
+      i += beforeText.length - 1;
+      convertData = convertDic;
+      break;
+    }
+    if(convertData){
+      if(currentText.length > 0){
+        resultArray.push({"before": currentText, "after": currentText});
+        currentText = "";
+      }
+      resultArray.push(convertData);
+      continue;
+    }
+    currentText += c;
+  }
+  if(currentText.length > 0){
+    resultArray.push({"before": currentText, "after": currentText});
+  }
+  return resultArray;
+}
+
+// 対象の文字列の中から、正規表現でひっかかる文字列を抜き出して、読み替え用の辞書を生成します。
+// 注意: pattern に指定するものは、後で new Regexp(pattern, "g") とされるため、複数ヒットします。
+function GenerateConvertDictionaryFromRegularExpression(targetText, pattern, convertTo){
+  var resultArray = [];
+  let matchIterator = targetText.matchAll(new RegExp(pattern, "g"));
+  for(let match of matchIterator) {
+    let matchText = match[0];
+    if(matchText){
+      let convertedText = matchText.replace(pattern, convertTo);
+      resultArray.push({"before": matchText, "after": convertedText});
+    }
+  }
+  return resultArray;
+}
+
+function SortConvertDictionary(convertDictionaryArray){
+  return convertDictionaryArray.sort(function(a, b){
+    let aBefore = a["before"];
+    let bBefore = b["before"];
+    if(aBefore.length < bBefore.length) { return 1; }
+    if(bBefore.length < aBefore.length) { return -1; }
+    return aBefore < bBefore;
+  });
+}
+
+function SpeechTextHintToDisplayText(speechTextHintArray, displayTextIndex = 0){
+  var resultText = "";
+  for(var i in speechTextHintArray){
+    let speechTextHint = speechTextHintArray[i];
+    resultText += speechTextHint.before;
+  }
+  return resultText.slice(displayTextIndex);
+}
+
+function SpeechTextHintToSpeechText(speechTextHintArray, speechTextIndex = 0){
+  var resultText = "";
+  for(var i in speechTextHintArray){
+    let speechTextHint = speechTextHintArray[i];
+    resultText += speechTextHint.after;
+  }
+  return resultText.slice(speechTextIndex);
+}
+
+function SpeechTextIndexToDisplayTextIndex(speechTextHintArray, index){
+  var currentSpeechTextIndex = 0;
+  var currentDisplayTextIndex = 0;
+  for(var hintIndex in speechTextHintArray){
+    let speechTextHint = speechTextHintArray[hintIndex];
+    let speechText = speechTextHint.after;
+    let displayText = speechTextHint.before;
+    if(currentSpeechTextIndex + speechText.length > index){
+      let speechTextIndexLength = index - currentSpeechTextIndex;
+      let displayTextLength = displayText.length;
+      let speechTextLength = speechText.length;
+      let diffLength = Math.ceil(displayTextLength * speechTextIndexLength / speechTextLength);
+      return currentDisplayTextIndex + diffLength;
+    }
+    currentDisplayTextIndex += displayText.length;
+    currentSpeechTextIndex += speechText.length;
+  }
+  return currentDisplayTextIndex;
+}
+
+function CheckAutopagerizedContentAlive(SiteInfo, displayText){
+  let elementArray = extractElementForPageElementArray(GetPageElementArray(SiteInfo));
+  let newText = GenerateWholeText(elementArray, 0);
+  if(displayText.length < newText.length) {
+    return {"hasNewContent": true, "elementArray": elementArray, "index": displayText.length};
+  }
+  return {"hasNewContent": false};
+}
+
+function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting, SiteInfo, convertDic = []){
   StopSpeech();
+  let wholeText = GenerateWholeText(elementArray, 0);
   let text = GenerateWholeText(elementArray, index);
   if(text.length <= 0){
     //console.log("no text found");
     return false;
   }
-  let utterance = new SpeechSynthesisUtterance(text);
+  let speechTextHints = GenerateSpeechTextHints(text, convertDic);
+  let speechText = SpeechTextHintToSpeechText(speechTextHints, 0);
+  let utterance = new SpeechSynthesisUtterance(speechText);
   utterance.onboundary = function(event){
     //console.log("SpeechSynthesisUtterance Event onBoundary", event.charIndex, event);
-    let elementData = SearchElementFromIndex(elementArray, event.charIndex);
+    let displayTextIndex = SpeechTextIndexToDisplayTextIndex(speechTextHints, event.charIndex);
+    let elementData = SearchElementFromIndex(elementArray, displayTextIndex + index);
     if(elementData){
       HighlightSpeechSentence(elementData.element, elementData.index);
       if(voiceSetting.isScrollEnabled == "true"){ // localStorage には boolean が入らないぽいので文字列で入れている
@@ -269,7 +389,19 @@ function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting)
     //console.log("SpeechSynthesisUtterance Event onEnd", event);
     RemoveHighlightSpeechSentence();
     chrome.runtime.sendMessage({"type": "EndSpeech"});
-    checkRepeat(elementArray, nextLink, index, voiceSetting);
+
+    let isAutopagerizeContinueEnabled = voiceSetting["isAutopagerizeContinueEnabled"];
+    if(!isStopped && isAutopagerizeContinueEnabled == "true"){
+      let result = CheckAutopagerizedContentAlive(SiteInfo, wholeText);
+      if(result.hasNewContent){
+        SpeechWithPageElementArray(result.elementArray, nextLink, result.index, voiceSetting, SiteInfo, convertDic);
+      }
+      return;
+    }
+
+    if(checkRepeat(elementArray, nextLink, index, voiceSetting)){
+      return;
+    }
   };
   utterance.onerror = function(event){console.log("SpeechSynthesisUtterance Event onError", event);};
   utterance.onmark = function(event){console.log("SpeechSynthesisUtterance Event onMark", event);};
@@ -286,18 +418,17 @@ function runSpeechWithSiteInfo(SiteInfo, voiceSetting){
   let nextLink = GetNextLink(SiteInfo);
   //console.log("SiteInfo", SiteInfo, "elementArray", elementArray);
   let selection = window.getSelection();
-  var index = -1;
+  var index = 0;
   if(selection.rangeCount > 0){
     let speechTarget = SplitElementFromSelection(elementArray, selection.getRangeAt(0));
     //console.log("speechTarget", speechTarget);
     if(speechTarget){
-      elementArray = speechTarget.elementArray;
-      index = speechTarget.index;
+      let wholeText = GenerateWholeText(elementArray, 0);
+      let speechTargetText = GenerateWholeText(speechTarget.elementArray, 0);
+      index = wholeText.length - speechTargetText.length + speechTarget.index;
     }
-  }else{
-    index = 0;
   }
-  if(index >= 0 && elementArray && SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting)){
+  if(index >= 0 && elementArray && SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting, SiteInfo)){
     return true;
   }
   return false;
@@ -321,27 +452,32 @@ chrome.runtime.onMessage.addListener(
     //console.log("onMessage", message, sender, sendResponse);
     switch(message.type){
     case "KickSpeech":
-      //console.log("KickSpeech", message);
+      isStopped = false;
+      console.log("KickSpeech", message);
       runSpeech(
         message.SiteInfoArray.concat([{"data":{"pageElement": "//body", "nextLink": "", "url": ".*"}}]),
-        CreateVoiceSetting(message.lang, message.voice, message.pitch, message.rate, message.volume, message.isScrollEnabled)
+        CreateVoiceSetting(message.lang, message.voice, message.pitch, message.rate, message.volume, message.isScrollEnabled, message.isAutopagerizeContinueEnabled)
       );
       break;
     case "KickSpeechRepeatMode":
       isRepeat = true;
+      isStopped = false;
       runSpeech(
         message.SiteInfoArray.concat([{"data":{"pageElement": "//body", "nextLink": "", "url": ".*"}}]),
-        CreateVoiceSetting(message.lang, message.voice, message.pitch, message.rate, message.volume, message.isScrollEnabled)
+        CreateVoiceSetting(message.lang, message.voice, message.pitch, message.rate, message.volume, message.isScrollEnabled, message.isAutopagerizeContinueEnabled)
       );
       break;
     case "StopSpeech":
       isRepeat = false;
+      isStopped = true;
       StopSpeech();
       break;
     case "PauseSpeech":
+      isStopped = true;
       PauseSpeech();
       break;
     case "ResumeSpeech":
+      isStopped = false;
       ResumeSpeech();
       break;
     default:

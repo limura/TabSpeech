@@ -31,12 +31,20 @@ sample text: <input type="text" name="testText" id="testText" size="80" value="
 <label for="isScrollEnabled" style="cursor: pointer"><input type="checkbox" id="isScrollEnabled" name="isScrollEnabled" value="1"/>Enable force scroll to speech sentence</label>
 </div>
 <div>
+<label for="isAutopagerizeContinueEnabled" style="cursor: pointer"><input type="checkbox" id="isAutopagerizeContinueEnabled" name="isAutopagerizeContinueEnabled" value="1"/>実験的機能：読み終わった時に読み上げられるものが追加されていたら追加分を読み上げる。(Autopagerizeと合わせる場合に嬉しくなるかもしれません。なお、現状この機能は不確定要素が色々ありますので安定動作ができないものと考えて下さい)</label>
+</div>
+<div>
 <button id="voiceSelectorTest">Test</button>
 <button id="voiceSettingReset">Reset</button>
 <button id="save">Save</button><span id="savedInfomation"></span>
 </div>
 <div>
 <a id="configureShortcuts" href="chrome://extensions/shortcuts">Set keyboard shortcuts</a>
+</div>
+<hr>
+<div id="convertSetting">
+</div>
+<div id="regexpConvertSetting">
 </div>
 <script src="options.js"></script>
 </body>

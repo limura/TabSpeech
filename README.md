@@ -14,7 +14,7 @@ Chrome ウェブストアにて[公開しています](https://chrome.google.com
 
 # 余談
 
-読み上げを開始した時に表示されていないものは読み上げられません。
+読み上げを開始した時に表示されていないものは読み上げられません(Version 1.5以降であれば、オプションで「Enable force scroll to speech sentence」と「読み終わった時に読み上げられるものが追加されていたら追加分を読み上げる」の両方をONにした上で Autopagerize を効かせており、読み上げ中のタブを表示し続けているという前提であれば、Autopagerize がロードした続きの内容を読み上げ続ける事ができる「かも」しれません)。
 つまり、AutoPagerize が効くページの場合、「先に」AutoPagerize で全ページを表示しておいてから読み上げを開始しないと、全てのページを読み上げることはできません。
 
 読み上げには WebSpeech API を利用しています。(つまり、chrome のアドレスバーに `javascript:window.speechSynthesis.speak(new SpeechSynthesisUtterance("こんにちは世界"))` と入力して読み上げられなければ駄目です)
@@ -51,6 +51,9 @@ SiteInfo の読み込み順がおかしくなる問題を解消。
 ## Version 1.4
 読み上げ位置にスクロールするか否かの設定を追加。(ONにしないと今まで通りスクロールはしません)
 キーボードショートカットの設定を追加。(オプション→Set keyboard shortcutsで設定しないと有効になりません)
+
+## Version 1.5
+「読み終わった時に読み上げられるものが追加されていたら追加分を読み上げる」機能のON/OFF設定を追加。
 
 # 既知の問題
 

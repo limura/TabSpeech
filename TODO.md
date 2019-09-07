@@ -1,4 +1,3 @@
-- ショートカットキーで読み上げ/停止 https://developer.chrome.com/apps/commands
 - 読み上げ言語の自動選択 https://github.com/wooorm/franc とか？
   - i18n (ストアページも含む)
 - [ことせかい](https://limura.github.io/NovelSpeaker/) 側でできていてこちらでできていない機能の追加
