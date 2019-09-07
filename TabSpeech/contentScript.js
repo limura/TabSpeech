@@ -17,7 +17,7 @@ function ResumeSpeech(){
   speechSynthesis.resume();
 }
 
-function CreateVoiceSetting(lang, voice, pitch, rate, volume, isScrollEnabled, isAutopagerizeContinueEnabled){
+function CreateVoiceSetting(lang, voice, pitch, rate, volume, isScrollEnabled, isAutopagerizeContinueEnabled, convertTable, regexpConvertTable){
   return {
     "lang": lang,
     "voice": voice,
@@ -26,6 +26,8 @@ function CreateVoiceSetting(lang, voice, pitch, rate, volume, isScrollEnabled, i
     "volume": volume,
     "isScrollEnabled": isScrollEnabled,
     "isAutopagerizeContinueEnabled": isAutopagerizeContinueEnabled,
+    "convertTable": convertTable,
+    "regexpConvertTable": regexpConvertTable,
   };
 }
 
@@ -353,12 +355,44 @@ function CheckAutopagerizedContentAlive(SiteInfo, displayText){
   let elementArray = extractElementForPageElementArray(GetPageElementArray(SiteInfo));
   let newText = GenerateWholeText(elementArray, 0);
   if(displayText.length < newText.length) {
-    return {"hasNewContent": true, "elementArray": elementArray, "index": displayText.length};
+    return {"hasNewContent": true, "elementArray": elementArray, "index": displayText.length, "newText": newText};
   }
   return {"hasNewContent": false};
 }
 
-function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting, SiteInfo, convertDic = []){
+function WedataConvertTableToLocalConvertDic(json){
+  var result = [];
+  for(var i = 0; i < json.length; i++){
+    let column = json[i];
+    if("data" in column){
+      let data = column["data"];
+      var to = "";
+      if("to" in data){ to = data["to"]; }
+      if("from" in data){
+        result.push({"before": data["from"], "after": to});
+      }
+    }
+  }
+  return result;
+}
+
+function CreateConvertDic(wholeText, convertTable, regexpConvertTable){
+  console.log("convertTable", convertTable, "regexpConvertTable", regexpConvertTable);
+  var convertDic = WedataConvertTableToLocalConvertDic(convertTable);
+  let regexpConvertDic = WedataConvertTableToLocalConvertDic(regexpConvertTable);
+  for(var i = 0; i < regexpConvertDic.length; i++){
+    let dic = regexpConvertDic[i];
+    try {
+      let resultArray = GenerateConvertDictionaryFromRegularExpression(wholeText, dic.before, dic.after);
+      convertDic.push(...resultArray);
+    }catch(e){
+      console.log("parse RegularExpression error?", e);
+    }
+  }
+  return SortConvertDictionary(convertDic);
+}
+
+function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting, SiteInfo){
   StopSpeech();
   let wholeText = GenerateWholeText(elementArray, 0);
   let text = GenerateWholeText(elementArray, index);
@@ -366,6 +400,8 @@ function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting,
     //console.log("no text found");
     return false;
   }
+  let convertDic = CreateConvertDic(wholeText, voiceSetting.convertTable, voiceSetting.regexpConvertTable);
+  console.log("convertDic", convertDic);
   let speechTextHints = GenerateSpeechTextHints(text, convertDic);
   let speechText = SpeechTextHintToSpeechText(speechTextHints, 0);
   let utterance = new SpeechSynthesisUtterance(speechText);
@@ -394,7 +430,7 @@ function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting,
     if(!isStopped && isAutopagerizeContinueEnabled == "true"){
       let result = CheckAutopagerizedContentAlive(SiteInfo, wholeText);
       if(result.hasNewContent){
-        SpeechWithPageElementArray(result.elementArray, nextLink, result.index, voiceSetting, SiteInfo, convertDic);
+        SpeechWithPageElementArray(result.elementArray, nextLink, result.index, voiceSetting, SiteInfo);
       }
       return;
     }
@@ -456,7 +492,7 @@ chrome.runtime.onMessage.addListener(
       console.log("KickSpeech", message);
       runSpeech(
         message.SiteInfoArray.concat([{"data":{"pageElement": "//body", "nextLink": "", "url": ".*"}}]),
-        CreateVoiceSetting(message.lang, message.voice, message.pitch, message.rate, message.volume, message.isScrollEnabled, message.isAutopagerizeContinueEnabled)
+        CreateVoiceSetting(message.lang, message.voice, message.pitch, message.rate, message.volume, message.isScrollEnabled, message.isAutopagerizeContinueEnabled, message.convertTable, message.regexpConvertTable)
       );
       break;
     case "KickSpeechRepeatMode":
@@ -464,7 +500,7 @@ chrome.runtime.onMessage.addListener(
       isStopped = false;
       runSpeech(
         message.SiteInfoArray.concat([{"data":{"pageElement": "//body", "nextLink": "", "url": ".*"}}]),
-        CreateVoiceSetting(message.lang, message.voice, message.pitch, message.rate, message.volume, message.isScrollEnabled, message.isAutopagerizeContinueEnabled)
+        CreateVoiceSetting(message.lang, message.voice, message.pitch, message.rate, message.volume, message.isScrollEnabled, message.isAutopagerizeContinueEnabled, message.convertTable, message.regexpConvertTable)
       );
       break;
     case "StopSpeech":

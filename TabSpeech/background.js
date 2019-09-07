@@ -1,9 +1,14 @@
 let expireMillisecond = 100 * 60 * 60 * 1;
 let kotosekaiSiteInfoURL = "http://wedata.net/databases/%E3%81%93%E3%81%A8%E3%81%9B%E3%81%8B%E3%81%84Web%E3%83%9A%E3%83%BC%E3%82%B8%E8%AA%AD%E3%81%BF%E8%BE%BC%E3%81%BF%E7%94%A8%E6%83%85%E5%A0%B1/items.json";
 let autopagerizeSiteInfoURL = "http://wedata.net/databases/AutoPagerize/items.json";
+let defaultConvertTableURL = "http://wedata.net/databases/TTS%20Convert%20Table%20for%20Apple%20TTS%20Engine%20(jp)/items.json";
+let defaultRegexpConvertTableURL = "http://wedata.net/databases/TTS%20Regulaer%20Expression%20Convert%20Table%20for%20Apple%20TTS%20Engine%20(jp)/items.json";
 
 var siteInfo = [];
 var siteInfoFetchMillisecond = 0;
+var convertTableFetchMillisecond = 0;
+var convertTable = [];
+var regexpConvertTable = [];
 
 function siteInfoSortFunc(a, b){
   var aLen = 0;
@@ -15,6 +20,15 @@ function siteInfoSortFunc(a, b){
     bLen = ("" + b.data.url).length;
   }
   return bLen - aLen;
+}
+
+function FetchJson(url){
+  return new Promise(resolve => {
+    fetch(url)
+    .then(function(response){
+      resolve(response.json());
+    });
+  });
 }
 
 function FetchSiteInfo(url){
@@ -42,6 +56,26 @@ function UpdateSiteInfo(){
 }
 UpdateSiteInfo();
 
+async function UpdateConvertTablesAsync(){
+  let convertTableURL = localStorage["convertTableURL"];
+  if(!convertTableURL){
+    convertTableURL = defaultConvertTableURL;
+  }
+  let regexpConvertTableURL = localStorage["regexpConvertTableURL"];
+  if(!regexpConvertTableURL){
+    regexpConvertTableURL = defaultRegexpConvertTableURL;
+  }
+  let convertTableTmp = await FetchJson(convertTableURL);
+  let regexpConvertTableTmp = await FetchJson(regexpConvertTableURL);
+  convertTableFetchMillisecond = (new Date()).getTime();
+  if(convertTableTmp){ convertTable = convertTableTmp; }
+  if(regexpConvertTableTmp){ regexpConvertTable = regexpConvertTableTmp; }
+}
+function UpdateConvertTable(){
+  UpdateConvertTablesAsync();
+}
+UpdateConvertTable();
+
 function GetSiteInfo(){
   let thisDate = new Date();
   let expireMs = thisDate.getTime() - expireMillisecond;
@@ -50,6 +84,17 @@ function GetSiteInfo(){
     UpdateSiteInfo();
   }
   return currentSiteInfo;
+}
+
+function GetConvertTables(){
+  let thisDate = new Date();
+  let expireMs = thisDate.getTime() - expireMillisecond;
+  let currentConvertTable = convertTable;
+  let currentRegexpConvertTable = regexpConvertTable;
+  if(convertTableFetchMillisecond < expireMs){
+    UpdateConvertTable();
+  }
+  return [currentConvertTable, currentRegexpConvertTable];
 }
 
 function SearchSiteInfo(url){
@@ -81,6 +126,7 @@ function StatusEndSpeech(){
 
 function RunStartSpeech(tabId, url, kickType){
   let siteInfoArray = SearchSiteInfo(url);
+  let convertTables = GetConvertTables();
   //console.log("RunStartSpeech", localStorage["lang"], localStorage, tabId);
   chrome.tabs.sendMessage(tabId, {
     "type": kickType,
@@ -91,7 +137,9 @@ function RunStartSpeech(tabId, url, kickType){
     "rate": localStorage["rate"],
     "volume": localStorage["volume"],
     "isScrollEnabled": localStorage["isScrollEnabled"],
-    "isAutopagerizeContinueEnabled": localStorage["isAutopagerizeContinueEnabled"]
+    "isAutopagerizeContinueEnabled": localStorage["isAutopagerizeContinueEnabled"],
+    "convertTable": convertTables[0],
+    "regexpConvertTable": convertTables[1],
   });
   StatusStartSpeech();
 }

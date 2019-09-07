@@ -34,6 +34,12 @@ sample text: <input type="text" name="testText" id="testText" size="80" value="
 <label for="isAutopagerizeContinueEnabled" style="cursor: pointer"><input type="checkbox" id="isAutopagerizeContinueEnabled" name="isAutopagerizeContinueEnabled" value="1"/>実験的機能：読み終わった時に読み上げられるものが追加されていたら追加分を読み上げる。(Autopagerizeと合わせる場合に嬉しくなるかもしれません。なお、現状この機能は不確定要素が色々ありますので安定動作ができないものと考えて下さい)</label>
 </div>
 <div>
+読み替えデータベース(Wedata の JSON形式へのlink)<input type="text" name="convertTableURL" id="convertTableURL" size="80" value=""/>
+</div>
+<div>
+正規表現用読み替えデータベース(Wedata の JSON形式へのlink)<input type="text" name="regexpConvertTableURL" id="regexpConvertTableURL" size="80" value=""/>
+</div>
+<div>
 <button id="voiceSelectorTest">Test</button>
 <button id="voiceSettingReset">Reset</button>
 <button id="save">Save</button><span id="savedInfomation"></span>
@@ -42,10 +48,6 @@ sample text: <input type="text" name="testText" id="testText" size="80" value="
 <a id="configureShortcuts" href="chrome://extensions/shortcuts">Set keyboard shortcuts</a>
 </div>
 <hr>
-<div id="convertSetting">
-</div>
-<div id="regexpConvertSetting">
-</div>
 <script src="options.js"></script>
 </body>
 </html>

@@ -1,3 +1,6 @@
+let defaultConvertTableURL = "http://wedata.net/databases/TTS%20Convert%20Table%20for%20Apple%20TTS%20Engine%20(jp)/items.json";
+let defaultRegexpConvertTableURL = "http://wedata.net/databases/TTS%20Regulaer%20Expression%20Convert%20Table%20for%20Apple%20TTS%20Engine%20(jp)/items.json";
+
 function getVoiceList(speechSynthesis) {
   let voices = speechSynthesis.getVoices();
   return voices;
@@ -21,8 +24,7 @@ function filterVoiceForLang(voices, lang) {
     }
   }
   return result;
-}
-
+} 
 function getVoiceNames(voices) {
   var resultSet = new Set();
   for(let voice of voices){
@@ -102,6 +104,14 @@ function getIsAutopagerizeContinueEnabled(){
   return document.getElementById("isAutopagerizeContinueEnabled").checked ? "true" : "false";
 }
 
+function getConvertTableURL(){
+  return document.getElementById("convertTableURL").value;
+}
+
+function getRegexpConvertTableURL(){
+  return document.getElementById("regexpConvertTableURL").value;
+}
+
 function testButtonClicked(speechSynthesis, voices){
   speechSynthesis.cancel();
   let testText = getTestText();
@@ -146,6 +156,8 @@ function saveButtonClicked(voices, savedInformationElement){
   localStorage["volume"] = getVolume();
   localStorage["isScrollEnabled"] = getIsScrollEnabled();
   localStorage["isAutopagerizeContinueEnabled"] = getIsAutopagerizeContinueEnabled();
+  localStorage["convertTableURL"] = getConvertTableURL();
+  localStorage["regexpConvertTableURL"] = getRegexpConvertTableURL();
 
 console.log("saved localStorage", localStorage);
 
@@ -164,22 +176,6 @@ function selectSelected(selectElement, targetValue){
       return;
     }
   }
-}
-
-function addDefaultConvertSettings(){
-  let defaultConvertSetting = {
-    "異世界": "いせかい",
-    "猪八戒": "ちょはっかい",
-    "YouTuber": "ユーチューバー",
-    "VTuber": "ブイチューバー",
-    "VRChat": "ブイアールチャット",
-    "Type-C": "タイプシー",
-  };
-  let defaultRegexpConvertSetting = {
-    "[a-z][0-9a-z-+.]*:(//((%[0-9a-f][0-9a-f]|[0-9a-z-._~!$&'()*+,;=:])*@)?(\\[(::(ffff:([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(\\.([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3}|(([0-9a-f]|[1-9a-f][0-9a-f]{1,3})(:([0-9a-f]|[1-9a-f][0-9a-f]{1,3})){0,5})?)|([0-9a-f]|[1-9a-f][0-9a-f]{1,3})(::(([0-9a-f]|[1-9a-f][0-9a-f]{1,3})(:([0-9a-f]|[1-9a-f][0-9a-f]{1,3})){0,4})?|:([0-9a-f]|[1-9a-f][0-9a-f]{1,3})(::(([0-9a-f]|[1-9a-f][0-9a-f]{1,3})(:([0-9a-f]|[1-9a-f][0-9a-f]{1,3})){0,3})?|:([0-9a-f]|[1-9a-f][0-9a-f]{1,3})(::(([0-9a-f]|[1-9a-f][0-9a-f]{1,3})(:([0-9a-f]|[1-9a-f][0-9a-f]{1,3})){0,2})?|:([0-9a-f]|[1-9a-f][0-9a-f]{1,3})(::(([0-9a-f]|[1-9a-f][0-9a-f]{1,3})(:([0-9a-f]|[1-9a-f][0-9a-f]{1,3}))?)?|:([0-9a-f]|[1-9a-f][0-9a-f]{1,3})(::([0-9a-f]|[1-9a-f][0-9a-f]{1,3})?|(:([0-9a-f]|[1-9a-f][0-9a-f]{1,3})){3})))))|v[0-9a-f]\\.([0-9a-z-._~!$&'()*+,;=:])+)\\]|(%[0-9a-f][0-9a-f]|[0-9a-z-._~!$&'()*+,;=])*)(:[1-9][0-9]*)?)?(/(%[0-9a-f][0-9a-f]|[0-9a-z-._~!$&'()*+,;=:@])*)*(\\?(%[0-9a-f][0-9a-f]|[0-9a-z-._~!$&'()*+,;=:@/?])*)?(#(%[0-9a-f][0-9a-f]|[0-9a-z-._~!$&'()*+,;=:@/?])*)?": "",
-  };
-
-  
 }
 
 function loadSettings(voices){
@@ -217,6 +213,16 @@ function loadSettings(voices){
       document.getElementById("isAutopagerizeContinueEnabled").checked = true;
     }
   }
+  if("convertTableURL" in localStorage){
+    document.getElementById("convertTableURL").value = localStorage.convertTableURL;
+  }else{
+    document.getElementById("convertTableURL").value = defaultConvertTableURL;
+  }
+  if("regexpConvertTableURL" in localStorage){
+    document.getElementById("regexpConvertTableURL").value = localStorage.regexpConvertTableURL;
+  }else{
+    document.getElementById("regexpConvertTableURL").value = defaultRegexpConvertTableURL;
+  }
 }
 
 function clearSettings(){
@@ -227,6 +233,8 @@ function clearSettings(){
   delete localStorage.removeItem("volume");
   delete localStorage.ramogeItem("isScrollEnabled");
   delete localStorage.ramogeItem("isAutopagerizeContinueEnabled");
+  delete localStorage.removeItem("contertTableURL");
+  delete localStorage.removeItem("regexpConvertTableURL");
   location.reload();
 }
 
