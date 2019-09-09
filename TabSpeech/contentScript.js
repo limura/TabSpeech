@@ -292,11 +292,12 @@ function GenerateSpeechTextHints(text, convertDicSortedArray) {
 // 注意: pattern に指定するものは、後で new Regexp(pattern, "g") とされるため、複数ヒットします。
 function GenerateConvertDictionaryFromRegularExpression(targetText, pattern, convertTo){
   var resultArray = [];
-  let matchIterator = targetText.matchAll(new RegExp(pattern, "g"));
+  let regexp = new RegExp(pattern ,"g");
+  let matchIterator = targetText.matchAll(regexp);
   for(let match of matchIterator) {
     let matchText = match[0];
     if(matchText){
-      let convertedText = matchText.replace(pattern, convertTo);
+      let convertedText = matchText.replace(regexp, convertTo);
       resultArray.push({"before": matchText, "after": convertedText});
     }
   }
@@ -377,7 +378,6 @@ function WedataConvertTableToLocalConvertDic(json){
 }
 
 function CreateConvertDic(wholeText, convertTable, regexpConvertTable){
-  console.log("convertTable", convertTable, "regexpConvertTable", regexpConvertTable);
   var convertDic = WedataConvertTableToLocalConvertDic(convertTable);
   let regexpConvertDic = WedataConvertTableToLocalConvertDic(regexpConvertTable);
   for(var i = 0; i < regexpConvertDic.length; i++){
@@ -401,7 +401,6 @@ function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting,
     return false;
   }
   let convertDic = CreateConvertDic(wholeText, voiceSetting.convertTable, voiceSetting.regexpConvertTable);
-  console.log("convertDic", convertDic);
   let speechTextHints = GenerateSpeechTextHints(text, convertDic);
   let speechText = SpeechTextHintToSpeechText(speechTextHints, 0);
   let utterance = new SpeechSynthesisUtterance(speechText);
