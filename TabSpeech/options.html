@@ -20,24 +20,24 @@ Speaker: <span id="langSelector">
 </span>
 <br>
 <div>
-Pitch: <input type="range" name="pitch" id="pitch" min="0" max="2" step="0.01" value="1"/>
-Rate: <input type="range" name="rate" id="rate" min="0.1" max="2" step="0.01" value="1"/>
-Volume: <input type="range" name="volume" id="volume" min="0" max="1" step="0.01" value="1"/>
+<span data-i18n-text="OptionsPagePitchTitle">Pitch</span>: <input type="range" name="pitch" id="pitch" min="0" max="2" step="0.01" value="1"/>
+<span data-i18n-text="OptionsPageRateTitle">Rate</span>: <input type="range" name="rate" id="rate" min="0.1" max="2" step="0.01" value="1"/>
+<span data-i18n-text="OptionsPageVolumeTitle">Volume</span>: <input type="range" name="volume" id="volume" min="0" max="1" step="0.01" value="1"/>
 </div>
 <div>
-sample text: <input type="text" name="testText" id="testText" size="80" value="メロスは激怒した。必ず、かの邪智暴虐の王を除かなければならぬと決意した。"/>
+<span data-i18n-text="OptionsPageSampleTextTitle">sample text</span>: <input type="text" name="testText" id="testText" size="80" data-i18n-value="OptionsPageSampleTextValue" value="メロスは激怒した。必ず、かの邪智暴虐の王を除かなければならぬと決意した。"/>
 </div>
 <div>
-<label for="isScrollEnabled" style="cursor: pointer"><input type="checkbox" id="isScrollEnabled" name="isScrollEnabled" value="1"/>Enable force scroll to speech sentence</label>
+<label for="isScrollEnabled" style="cursor: pointer"><input type="checkbox" id="isScrollEnabled" name="isScrollEnabled" value="1"/><span data-i18n-text="OptionsPageIsScrollEnabledText">Enable force scroll to speech sentence</span></label>
 </div>
 <div>
-<label for="isAutopagerizeContinueEnabled" style="cursor: pointer"><input type="checkbox" id="isAutopagerizeContinueEnabled" name="isAutopagerizeContinueEnabled" value="1"/>実験的機能：読み終わった時に読み上げられるものが追加されていたら追加分を読み上げる。(Autopagerizeと合わせる場合に嬉しくなるかもしれません。なお、現状この機能は不確定要素が色々ありますので安定動作ができないものと考えて下さい)</label>
+<label for="isAutopagerizeContinueEnabled" style="cursor: pointer"><input type="checkbox" id="isAutopagerizeContinueEnabled" name="isAutopagerizeContinueEnabled" value="1"/><span data-i18n-text="OptionsPageIsAutopageizeContinueEnabledText">実験的機能：読み終わった時に読み上げられるものが追加されていたら追加分を読み上げる。(Autopagerizeと合わせる場合に嬉しくなるかもしれません。なお、現状この機能は不確定要素が色々ありますので安定動作ができないものと考えて下さい)</span></label>
 </div>
 <div>
-読み替えデータベース(Wedata の JSON形式へのlink)<input type="text" name="convertTableURL" id="convertTableURL" size="80" value=""/>
+<span data-i18n-text="OptionsPageConvertTableURLLinkText">読み替えデータベース(Wedata の JSON形式へのlink)</span><input type="text" name="convertTableURL" id="convertTableURL" size="80" value=""/>
 </div>
 <div>
-正規表現用読み替えデータベース(Wedata の JSON形式へのlink)<input type="text" name="regexpConvertTableURL" id="regexpConvertTableURL" size="80" value=""/>
+<span data-i18n-text="OptionsPageRegexpConvertTableURLLinkText">正規表現用読み替えデータベース(Wedata の JSON形式へのlink)</span><input type="text" name="regexpConvertTableURL" id="regexpConvertTableURL" size="80" value=""/>
 </div>
 <div>
 <button id="voiceSelectorTest">Test</button>
@@ -45,8 +45,10 @@ sample text: <input type="text" name="testText" id="testText" size="80" value="
 <button id="save">Save</button><span id="savedInfomation"></span>
 </div>
 <div>
-<a id="configureShortcuts" href="chrome://extensions/shortcuts">Set keyboard shortcuts</a>
+<a id="configureShortcuts" href="chrome://extensions/shortcuts"><span data-i18n-text="OptionsPageKeyboardShortcutsLinkText">Set keyboard shortcuts</span></a>
 </div>
+<div>
+<span data-i18n-text="OptionsPageDonateText">You can support TabSpeech by donating:</span> <a href="http://amzn.asia/5arphrL">Amazon wish list link</a>
 <hr>
 <script src="options.js"></script>
 </body>

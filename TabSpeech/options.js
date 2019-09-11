@@ -1,6 +1,18 @@
 let defaultConvertTableURL = "http://wedata.net/databases/TTS%20Convert%20Table%20for%20Apple%20TTS%20Engine%20(jp)/items.json";
 let defaultRegexpConvertTableURL = "http://wedata.net/databases/TTS%20Regulaer%20Expression%20Convert%20Table%20for%20Apple%20TTS%20Engine%20(jp)/items.json";
 
+function localizeHtmlPage() {
+  document.querySelectorAll("[data-i18n-text]").forEach(element => {
+    const key = element.getAttribute("data-i18n-text");
+    element.textContent = chrome.i18n.getMessage(key);
+  });
+
+  document.querySelectorAll("[data-i18n-value]").forEach(element => {
+    const key = element.getAttribute("data-i18n-value");
+    element.value = chrome.i18n.getMessage(key);
+  });
+}
+
 function getVoiceList(speechSynthesis) {
   let voices = speechSynthesis.getVoices();
   return voices;
@@ -281,3 +293,4 @@ document.getElementById('configureShortcuts').onclick = function(e) {
 const awaitVoices = new Promise(resolve => speechSynthesis.onvoiceschanged = resolve);
 awaitVoices.then(()=>{init();});
 
+localizeHtmlPage();

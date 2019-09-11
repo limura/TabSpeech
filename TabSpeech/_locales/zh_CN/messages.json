@@ -1,0 +1,71 @@
+{
+  "appDescription": {
+    "message": "阅读显示的选项卡上的文本"
+  },
+  "PageActionDefaultTitle": {
+    "message": "大声朗读"
+  },
+  "KeyboardShortcutNameStartSpeech": {
+    "message": "开始阅读"
+  },
+  "KeyboardShortcutNameStopSpeech": {
+    "message": "别读了"
+  },
+  "KeyboardShortcutNamePauseSpeech": {
+    "message": "暂停阅读"
+  },
+  "KeyboardShortcutNameResumeSpeech": {
+    "message": "恢复暂停阅读"
+  },
+  "PopupHtmlSpeechButtonTitle": {
+    "message": "启动"
+  },
+  "PopupHtmlStopButtonTitle": {
+    "message": "停工"
+  },
+  "PopupHtmlPauseButtonTitle": {
+    "message": "中断"
+  },
+  "PopupHtmlResumeButtonTitle": {
+    "message": "复牌"
+  },
+  "PopupHtmlRepeatSpeechButtonTitle": {
+    "message": "开始\n(重复)"
+  },
+  "PopupHtmlOptionsPageLinkButtonTitle": {
+    "message": "设置"
+  },
+  "OptionsPagePitchTitle": {
+    "message": "音高"
+  },
+  "OptionsPageRateTitle": {
+    "message": "率"
+  },
+  "OptionsPageVolumeTitle": {
+    "message": "音量"
+  },
+  "OptionsPageSampleTextTitle": {
+    "message": "用于阅读测试的文本"
+  },
+  "OptionsPageSampleTextValue": {
+    "message": "阅读测试中写的句子"
+  },
+  "OptionsPageIsScrollEnabledText": {
+    "message": "强制滚动到阅读位置"
+  },
+  "OptionsPageIsAutopageizeContinueEnabledText": {
+    "message": "实验性功能：如果读完后大声朗读，则会读出添加的内容。 （当您将其与Autopagerize匹配时，您可能会感到高兴。请注意，此功能目前存在各种不确定因素，因此无法稳定运行）"
+  },
+  "OptionsPageConvertTableURLLinkText": {
+    "message": "阅读数据库（链接到Wedata JSON格式）"
+  },
+  "OptionsPageRegexpConvertTableURLLinkText": {
+    "message": "正则表达式替换数据库（链接到Wedata JSON格式）"
+  },
+  "OptionsPageKeyboardShortcutsLinkText": {
+    "message": "打开键盘快捷键设置"
+  },
+  "OptionsPageDonateText": {
+    "message": "可以以捐赠的形式帮助TabSpeech开发"
+  }
+}

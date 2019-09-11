@@ -1,0 +1,71 @@
+{
+  "appDescription": {
+    "message": "表示されているタブの文章を読み上げます"
+  },
+  "PageActionDefaultTitle": {
+    "message": "読み上げる"
+  },
+  "KeyboardShortcutNameStartSpeech": {
+    "message": "読み上げを開始する"
+  },
+  "KeyboardShortcutNameStopSpeech": {
+    "message": "読み上げを停止する"
+  },
+  "KeyboardShortcutNamePauseSpeech": {
+    "message": "読み上げを一時停止する"
+  },
+  "KeyboardShortcutNameResumeSpeech": {
+    "message": "一時停止した読み上げを再開する"
+  },
+  "PopupHtmlSpeechButtonTitle": {
+    "message": "　 開始 　"
+  },
+  "PopupHtmlStopButtonTitle": {
+    "message": "　 停止 　"
+  },
+  "PopupHtmlPauseButtonTitle": {
+    "message": "　 中断 　"
+  },
+  "PopupHtmlResumeButtonTitle": {
+    "message": "　 再開 　"
+  },
+  "PopupHtmlRepeatSpeechButtonTitle": {
+    "message": "開始 \n(繰り返し)"
+  },
+  "PopupHtmlOptionsPageLinkButtonTitle": {
+    "message": "　 設定 　"
+  },
+  "OptionsPagePitchTitle": {
+    "message": "Pitch(声の高さ)"
+  },
+  "OptionsPageRateTitle": {
+    "message": "Rate(声の速さ)"
+  },
+  "OptionsPageVolumeTitle": {
+    "message": "Volume(声の大きさ)"
+  },
+  "OptionsPageSampleTextTitle": {
+    "message": "読み上げテスト用文字列"
+  },
+  "OptionsPageSampleTextValue": {
+    "message": "メロスは激怒した。必ず、かの邪智暴虐の王を除かなければならぬと決意した。"
+  },
+  "OptionsPageIsScrollEnabledText": {
+    "message": "読み上げ位置まで強制的にスクロールする"
+  },
+  "OptionsPageIsAutopageizeContinueEnabledText": {
+    "message": "実験的機能：読み終わった時に読み上げられるものが追加されていたら追加分を読み上げる。(Autopagerizeと合わせる場合に嬉しくなるかもしれません。なお、現状この機能は不確定要素が色々ありますので安定動作ができないものと考えて下さい)"
+  },
+  "OptionsPageConvertTableURLLinkText": {
+    "message": "読み替えデータベース(Wedata の JSON形式へのlink)"
+  },
+  "OptionsPageRegexpConvertTableURLLinkText": {
+    "message": "正規表現用読み替えデータベース(Wedata の JSON形式へのlink)"
+  },
+  "OptionsPageKeyboardShortcutsLinkText": {
+    "message": "キーボードショートカット設定を開く"
+  },
+  "OptionsPageDonateText": {
+    "message": "TabSpeech の開発に寄付の形で支援する事ができます。"
+  }
+}

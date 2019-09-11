@@ -1,0 +1,71 @@
+{
+  "appDescription": {
+    "message": "閱讀顯示的選項卡上的文本"
+  },
+  "PageActionDefaultTitle": {
+    "message": "大聲朗讀"
+  },
+  "KeyboardShortcutNameStartSpeech": {
+    "message": "開始閱讀"
+  },
+  "KeyboardShortcutNameStopSpeech": {
+    "message": "別讀了"
+  },
+  "KeyboardShortcutNamePauseSpeech": {
+    "message": "暫停閱讀"
+  },
+  "KeyboardShortcutNameResumeSpeech": {
+    "message": "恢復暫停閱讀"
+  },
+  "PopupHtmlSpeechButtonTitle": {
+    "message": "　 啟動 　"
+  },
+  "PopupHtmlStopButtonTitle": {
+    "message": "　 停工 　"
+  },
+  "PopupHtmlPauseButtonTitle": {
+    "message": "　 中斷 　"
+  },
+  "PopupHtmlResumeButtonTitle": {
+    "message": "　 復牌 　"
+  },
+  "PopupHtmlRepeatSpeechButtonTitle": {
+    "message": "啟動 \n(重)"
+  },
+  "PopupHtmlOptionsPageLinkButtonTitle": {
+    "message": "　 設置 　"
+  },
+  "OptionsPagePitchTitle": {
+    "message": "音高"
+  },
+  "OptionsPageRateTitle": {
+    "message": "率"
+  },
+  "OptionsPageVolumeTitle": {
+    "message": "音量"
+  },
+  "OptionsPageSampleTextTitle": {
+    "message": "用於閱讀測試的文本"
+  },
+  "OptionsPageSampleTextValue": {
+    "message": "閱讀測試中寫的句子"
+  },
+  "OptionsPageIsScrollEnabledText": {
+    "message": "強制滾動到閱讀位置"
+  },
+  "OptionsPageIsAutopageizeContinueEnabledText": {
+    "message": "實驗性功能：如果讀完後大聲朗讀，則會讀出添加的內容。 （當您將其與Autopagerize匹配時，您可能會感到高興。請注意，此功能目前存在各種不確定因素，因此無法穩定運行）"
+  },
+  "OptionsPageConvertTableURLLinkText": {
+    "message": "閱讀數據庫（鏈接到Wedata JSON格式）"
+  },
+  "OptionsPageRegexpConvertTableURLLinkText": {
+    "message": "正則表達式替換數據庫（鏈接到Wedata JSON格式）"
+  },
+  "OptionsPageKeyboardShortcutsLinkText": {
+    "message": "打開鍵盤快捷鍵設置"
+  },
+  "OptionsPageDonateText": {
+    "message": "可以以捐贈的形式幫助TabSpeech開發"
+  }
+}

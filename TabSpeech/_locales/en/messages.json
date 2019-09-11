@@ -1,0 +1,71 @@
+{
+  "appDescription": {
+    "message": "Read the text on the displayed tab"
+  },
+  "PageActionDefaultTitle": {
+    "message": "Speech"
+  },
+  "KeyboardShortcutNameStartSpeech": {
+    "message": "Start speech"
+  },
+  "KeyboardShortcutNameStopSpeech": {
+    "message": "Stop speech"
+  },
+  "KeyboardShortcutNamePauseSpeech": {
+    "message": "Pause speech"
+  },
+  "KeyboardShortcutNameResumeSpeech": {
+    "message": "Resume speech"
+  },
+  "PopupHtmlSpeechButtonTitle": {
+    "message": "Start"
+  },
+  "PopupHtmlStopButtonTitle": {
+    "message": "Stop"
+  },
+  "PopupHtmlPauseButtonTitle": {
+    "message": "Pause"
+  },
+  "PopupHtmlResumeButtonTitle": {
+    "message": "Resume"
+  },
+  "PopupHtmlRepeatSpeechButtonTitle": {
+    "message": "Start\n(Repeat)"
+  },
+  "PopupHtmlOptionsPageLinkButtonTitle": {
+    "message": "Options"
+  },
+  "OptionsPagePitchTitle": {
+    "message": "Pitch"
+  },
+  "OptionsPageRateTitle": {
+    "message": "Rate"
+  },
+  "OptionsPageVolumeTitle": {
+    "message": "Volume"
+  },
+  "OptionsPageSampleTextTitle": {
+    "message": "Speech sample text"
+  },
+  "OptionsPageSampleTextValue": {
+    "message": "If I speak in the tongues of men or of angels, but do not have love, I am only a resounding gong or a clanging cymbal."
+  },
+  "OptionsPageIsScrollEnabledText": {
+    "message": "Enable force scroll to speech sentence"
+  },
+  "OptionsPageIsAutopageizeContinueEnabledText": {
+    "message": "Experimental feature: If what is read aloud when it is finished reading, it reads out the added content. (You may be glad when you match it with Autopagerize. Please note that there are various uncertainties in this function at present, so it can not be stable operation)"
+  },
+  "OptionsPageConvertTableURLLinkText": {
+    "message": "Reading database (link to Wedata JSON format)"
+  },
+  "OptionsPageRegexpConvertTableURLLinkText": {
+    "message": "Regular expression replacement database (link to Wedata JSON format)"
+  },
+  "OptionsPageKeyboardShortcutsLinkText": {
+    "message": "Open keyboard shortcuts settings"
+  },
+  "OptionsPageDonateText": {
+    "message": "You can support TabSpeech by donating:"
+  }
+}

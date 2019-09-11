@@ -1,6 +1,7 @@
 {
+  "default_locale": "en",
   "name": "TabSpeech",
-  "description": "表示されているタブの文章を読み上げます",
+  "description": "__MSG_appDescription__",
   "version": "1.6.1",
   "background": { "scripts": ["background.js"] },
   "icons": {
@@ -9,7 +10,7 @@
     "128": "icon/TabSpeechIcon128.png"
   },
   "page_action": {
-    "default_title": "読み上げる",
+    "default_title": "__MSG_PageActionDefaultTitle__",
     "default_popup": "popup.html",
     "default_icon": "icon/TabSpeechIcon19.png"
   },
@@ -26,16 +27,16 @@
   ],
   "commands": {
     "start-speech": {
-      "description": "Start speech"
+      "description": "__MSG_KeyboardShortcutNameStartSpeech__"
     },
     "stop-speech": {
-      "description": "Stop speech"
+      "description": "__MSG_KeyboardShortcutNameStopSpeech__"
     },
     "pause-speech": {
-      "description": "Pause speech"
+      "description": "__MSG_KeyboardShortcutNamePauseSpeech__"
     },
     "resume-speech": {
-      "description": "Resume speech"
+      "description": "__MSG_KeyboardShortcutNameResumeSpeech__"
     }
   },
   "manifest_version": 2
