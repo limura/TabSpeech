@@ -67,5 +67,17 @@
   },
   "OptionsPageDonateText": {
     "message": "可以以捐赠的形式帮助TabSpeech开发"
+  },
+  "OptionsPageIsRateMaxStrechText": {
+    "message": "增加速度设置限制（不建议）"
+  },
+  "OptionsPageIsRateMaxStrechTextWarning": {
+    "message": "如果设置了某个速度，某些扬声器可能无法大声朗读，或者可能会忽略速度设置。因此，在打开此选项后，请务必执行读数测试并确认已按预期执行了读数。 拜托"
+  },
+  "DefaultConvertTableURL": {
+    "message": ""
+  },
+  "DefaultRegexpConvertTableURL": {
+    "message": ""
   }
 }

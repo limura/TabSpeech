@@ -1,5 +1,5 @@
-let defaultConvertTableURL = "http://wedata.net/databases/TTS%20Convert%20Table%20for%20Apple%20TTS%20Engine%20(jp)/items.json";
-let defaultRegexpConvertTableURL = "http://wedata.net/databases/TTS%20Regulaer%20Expression%20Convert%20Table%20for%20Apple%20TTS%20Engine%20(jp)/items.json";
+let defaultConvertTableURL = chrome.i18n.getMessage("DefaultConvertTableURL");
+let defaultRegexpConvertTableURL = chrome.i18n.getMessage("DefaultRegexpConvertTableURL");
 
 function localizeHtmlPage() {
   document.querySelectorAll("[data-i18n-text]").forEach(element => {
@@ -204,7 +204,14 @@ function loadSettings(voices){
     document.getElementById("pitch").value = localStorage.pitch;
   }
   if("rate" in localStorage){
-    document.getElementById("rate").value = localStorage.rate;
+    let rateValue = localStorage.rate;
+    let rate = document.getElementById("rate");
+    if(rateValue >= 2.0){
+      document.getElementById("isRateMaxStrech").checked = true;
+      rate.max = 10;
+    }
+    rate.value = rateValue;
+    document.getElementById("rateValue").innerHTML = rateValue;
   }
   if("volume" in localStorage){
     document.getElementById("volume").value = localStorage.volume;
@@ -262,6 +269,37 @@ function addConvertColumn(parentElement, identity, from, to){
   parentElement.appendChild(columnBody);
 }
 
+function initRateValueWatcher(inputIdentity, valueIdentity){
+  let input = document.getElementById(inputIdentity);
+  let value = document.getElementById(valueIdentity);
+  input.addEventListener('input', () => {
+    value.innerHTML = input.value;
+  });
+  input.addEventListener('change', () => {
+    value.innerHTML = input.value;
+  });
+}
+
+function initRateMaxStrechExtension(rateId, valueId, toggleId, warningId){
+  let toggle = document.getElementById(toggleId);
+  let warning = document.getElementById(warningId);
+  let rate = document.getElementById(rateId);
+  let value = document.getElementById(valueId);
+  toggle.addEventListener('change', () => {
+    if(toggle.checked){
+      warning.style.display = "block";
+      rate.max = 10;
+    }else{
+      warning.style.display = "none";
+      if(rate.value > 2){
+        rate.value = 2;
+        value.innerHTML = "2";
+      }
+      rate.max = 2;
+    }
+  });
+}
+
 let speechSynthesis = window.speechSynthesis;
 function init(){
   let voices = getVoiceList(speechSynthesis);
@@ -283,6 +321,8 @@ function init(){
     saveButtonClicked(voices, savedInformationElement);
   };
   document.getElementById("voiceSettingReset").onclick = clearSettings;
+  initRateValueWatcher("rate", "rateValue");
+  initRateMaxStrechExtension("rate", "rateValue", "isRateMaxStrech", "isRateMaxStrechWarningText");
   loadSettings(voices);
 };
 
