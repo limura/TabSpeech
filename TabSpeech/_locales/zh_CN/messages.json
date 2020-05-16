@@ -79,5 +79,8 @@
   },
   "DefaultRegexpConvertTableURL": {
     "message": ""
+  },
+  "RightClickMenu_SpeechSelected_Title": {
+    "message": "只说选择"
   }
 }

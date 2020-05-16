@@ -216,6 +216,11 @@ function StartSpeechRepeatMode(){
     RunStartSpeech(tab.id, tab.url, "KickSpeechRepeatMode");
   });
 }
+function StartSpeechOnlySelected(){
+  RunInCurrentTab(function(tab){
+    RunStartSpeech(tab.id, tab.url, "KickSpeechOnlySelected");
+  });
+}
 
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse){
@@ -263,5 +268,23 @@ chrome.commands.onCommand.addListener(function(command) {
     ResumeSpeech();
     break;
   }
+});
+
+/*
+chrome.contextMenus.create({
+    title: chrome.i18n.getMessage("RightClickMenu_StartSpeechHere_Title"),
+    contexts: ["selection"],
+    type: "normal",
+    onclick: function (info) {
+	StartSpeech();
+    }
+}); */
+chrome.contextMenus.create({
+    title: chrome.i18n.getMessage("RightClickMenu_SpeechSelected_Title"),
+    contexts: ["selection"],
+    type: "normal",
+    onclick: function (info) {
+	StartSpeechOnlySelected();
+    }
 });
  
