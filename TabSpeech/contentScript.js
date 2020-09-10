@@ -465,6 +465,8 @@ function runSpeechWithSiteInfo(SiteInfo, voiceSetting, isSpeechSelectionOnly){
       let wholeText = GenerateWholeText(elementArray, 0);
       let speechTargetText = GenerateWholeText(speechTarget.elementArray, 0);
       index = wholeText.length - speechTargetText.length + speechTarget.index;
+    }else{
+      return false;
     }
     if(isSpeechSelectionOnly){
       maxLength = selection.toString().length
