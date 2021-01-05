@@ -140,6 +140,7 @@ function RunStartSpeech(tabId, url, kickType){
     "isAutopagerizeContinueEnabled": localStorage["isAutopagerizeContinueEnabled"],
     "convertTable": convertTables[0],
     "regexpConvertTable": convertTables[1],
+    "scrollPositionRatio": localStorage["scrollPositionRatio"],
   });
   StatusStartSpeech();
 }

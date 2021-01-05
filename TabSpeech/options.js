@@ -112,6 +112,10 @@ function getIsScrollEnabled(){
   return document.getElementById("isScrollEnabled").checked ? "true" : "false";
 }
 
+function getScrollPositionRatio(){
+  return document.getElementById("scrollPositionRatio").value;
+}
+
 function getIsAutopagerizeContinueEnabled(){
   return document.getElementById("isAutopagerizeContinueEnabled").checked ? "true" : "false";
 }
@@ -167,6 +171,7 @@ function saveButtonClicked(voices, savedInformationElement){
   localStorage["rate"] = getRate();
   localStorage["volume"] = getVolume();
   localStorage["isScrollEnabled"] = getIsScrollEnabled();
+  localStorage["scrollPositionRatio"] = getScrollPositionRatio();
   localStorage["isAutopagerizeContinueEnabled"] = getIsAutopagerizeContinueEnabled();
   localStorage["convertTableURL"] = getConvertTableURL();
   localStorage["regexpConvertTableURL"] = getRegexpConvertTableURL();
@@ -224,6 +229,9 @@ function loadSettings(voices){
       document.getElementById("isScrollEnabled").checked = true;
     }
   }
+  if("scrollPositionRatio" in localStorage){
+    document.getElementById("scrollPositionRatio").value = localStorage.scrollPositionRatio;
+  }
   if("isAutopagerizeContinueEnabled" in localStorage){
     let isAutopagerizeContinueEnabled = localStorage.isAutopagerizeContinueEnabled;
     if(isAutopagerizeContinueEnabled == "false"){
@@ -250,8 +258,9 @@ function clearSettings(){
   delete localStorage.removeItem("pitch");
   delete localStorage.removeItem("rate");
   delete localStorage.removeItem("volume");
-  delete localStorage.ramogeItem("isScrollEnabled");
-  delete localStorage.ramogeItem("isAutopagerizeContinueEnabled");
+  delete localStorage.ramoveItem("isScrollEnabled");
+  delete localStorage.removeItem("scrollPositionRatio");
+  delete localStorage.ramoveItem("isAutopagerizeContinueEnabled");
   delete localStorage.removeItem("contertTableURL");
   delete localStorage.removeItem("regexpConvertTableURL");
   location.reload();

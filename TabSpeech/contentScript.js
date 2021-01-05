@@ -17,7 +17,11 @@ function ResumeSpeech(){
   speechSynthesis.resume();
 }
 
-function CreateVoiceSetting(lang, voice, pitch, rate, volume, isScrollEnabled, isAutopagerizeContinueEnabled, convertTable, regexpConvertTable){
+function CreateVoiceSettingFromMessage(message) {
+  return CreateVoiceSetting(message.lang, message.voice, message.pitch, message.rate, message.volume, message.isScrollEnabled, message.isAutopagerizeContinueEnabled, message.convertTable, message.regexpConvertTable, message.scrollPositionRatio);
+}
+
+function CreateVoiceSetting(lang, voice, pitch, rate, volume, isScrollEnabled, isAutopagerizeContinueEnabled, convertTable, regexpConvertTable, scrollPositionRatio){
   return {
     "lang": lang,
     "voice": voice,
@@ -28,6 +32,7 @@ function CreateVoiceSetting(lang, voice, pitch, rate, volume, isScrollEnabled, i
     "isAutopagerizeContinueEnabled": isAutopagerizeContinueEnabled,
     "convertTable": convertTable,
     "regexpConvertTable": regexpConvertTable,
+    "scrollPositionRatio": scrollPositionRatio,
   };
 }
 
@@ -392,6 +397,16 @@ function CreateConvertDic(wholeText, convertTable, regexpConvertTable){
   return SortConvertDictionary(convertDic);
 }
 
+function GetScrollRatio(voiceSetting) {
+  if("scrollPositionRatio" in voiceSetting) {
+    let scrollPositionRatio = voiceSetting.scrollPositionRatio;
+    if(scrollPositionRatio){
+      return 1 - voiceSetting.scrollPositionRatio;
+    }
+  }
+  return 0.65;
+}
+
 function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting, SiteInfo, maxLength = -1){
   StopSpeech();
   let wholeText = GenerateWholeText(elementArray, 0);
@@ -414,7 +429,7 @@ function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting,
     if(elementData){
       HighlightSpeechSentence(elementData.element, elementData.index);
       if(voiceSetting.isScrollEnabled == "true"){ // localStorage には boolean が入らないぽいので文字列で入れている
-        ScrollToElement(elementData.element, elementData.index, window.innerHeight * 0.65);
+        ScrollToElement(elementData.element, elementData.index, window.innerHeight * GetScrollRatio(voiceSetting));
       }
     }
     BoundarySpeechEventHandle(elementArray, event);
@@ -500,7 +515,7 @@ chrome.runtime.onMessage.addListener(
       console.log("KickSpeech", message);
       runSpeech(
         message.SiteInfoArray.concat([{"data":{"pageElement": "//body", "nextLink": "", "url": ".*"}}]),
-        CreateVoiceSetting(message.lang, message.voice, message.pitch, message.rate, message.volume, message.isScrollEnabled, message.isAutopagerizeContinueEnabled, message.convertTable, message.regexpConvertTable),
+        CreateVoiceSettingFromMessage(message),
 	false
       );
       break;
@@ -509,7 +524,7 @@ chrome.runtime.onMessage.addListener(
       isStopped = false;
       runSpeech(
         message.SiteInfoArray.concat([{"data":{"pageElement": "//body", "nextLink": "", "url": ".*"}}]),
-        CreateVoiceSetting(message.lang, message.voice, message.pitch, message.rate, message.volume, message.isScrollEnabled, message.isAutopagerizeContinueEnabled, message.convertTable, message.regexpConvertTable),
+        CreateVoiceSettingFromMessage(message),
 	false
       );
       break;
@@ -518,7 +533,7 @@ chrome.runtime.onMessage.addListener(
       console.log("KickSpeechOnlySelected", message);
       runSpeech(
         message.SiteInfoArray.concat([{"data":{"pageElement": "//body", "nextLink": "", "url": ".*"}}]),
-        CreateVoiceSetting(message.lang, message.voice, message.pitch, message.rate, message.volume, message.isScrollEnabled, message.isAutopagerizeContinueEnabled, message.convertTable, message.regexpConvertTable),
+        CreateVoiceSettingFromMessage(message),
 	true
       );
       break;

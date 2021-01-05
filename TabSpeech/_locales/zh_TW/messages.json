@@ -53,6 +53,9 @@
   "OptionsPageIsScrollEnabledText": {
     "message": "強制滾動到閱讀位置"
   },
+  "OptionsPageScrollPositionRatioTitle": {
+    "message": "強制滾動時屏幕上的垂直位置"
+  },
   "OptionsPageIsAutopageizeContinueEnabledText": {
     "message": "實驗性功能：如果讀完後大聲朗讀，則會讀出添加的內容。 （當您將其與Autopagerize匹配時，您可能會感到高興。請注意，此功能目前存在各種不確定因素，因此無法穩定運行）"
   },

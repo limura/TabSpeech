@@ -53,6 +53,9 @@
   "OptionsPageIsScrollEnabledText": {
     "message": "読み上げ位置まで強制的にスクロールする"
   },
+  "OptionsPageScrollPositionRatioTitle": {
+    "message": "強制スクロールする時の画面内での縦位置"
+  },
   "OptionsPageIsAutopageizeContinueEnabledText": {
     "message": "実験的機能：読み終わった時に読み上げられるものが追加されていたら追加分を読み上げる。(Autopagerizeと合わせる場合に嬉しくなるかもしれません。なお、現状この機能は不確定要素が色々ありますので安定動作ができないものと考えて下さい)"
   },
