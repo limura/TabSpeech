@@ -4,11 +4,31 @@ let autopagerizeSiteInfoURL = "http://wedata.net/databases/AutoPagerize/items.js
 let defaultConvertTableURL = "http://wedata.net/databases/TTS%20Convert%20Table%20for%20Apple%20TTS%20Engine%20(jp)/items.json";
 let defaultRegexpConvertTableURL = "http://wedata.net/databases/TTS%20Regulaer%20Expression%20Convert%20Table%20for%20Apple%20TTS%20Engine%20(jp)/items.json";
 
-var siteInfo = [];
-var siteInfoFetchMillisecond = 0;
-var convertTableFetchMillisecond = 0;
-var convertTable = [];
-var regexpConvertTable = [];
+function storageGetPromise(storage, targetArray){
+  return new Promise(resolve => {
+    storage.get(targetArray, function(items){
+      resolve(items);
+    });
+  });
+}
+function storageGetPromiseOne(storage, target){
+  return new Promise(resolve => {
+    storage.get([target], function(items){
+      if(target in items){
+        resolve(items[target]);
+      }else{
+        resolve(undefined);
+      }
+    });
+  });
+}
+function storageSetPromise(storage, keyValue){
+  return new Promise(resolve => {
+    storage.set(keyValue, function(values){
+      resolve(values);
+    });
+  });
+}
 
 function siteInfoSortFunc(a, b){
   var aLen = 0;
@@ -59,8 +79,12 @@ async function UpdateSiteInfoAsync(){
   let siteInfoKotosekai = await FetchSiteInfo(kotosekaiSiteInfoURL);
   let siteInfoAutopagerize = await FetchSiteInfo(autopagerizeSiteInfoURL);
   siteInfoFetchMillisecond = (new Date()).getTime();
-  siteInfo = [].concat(siteInfoKotosekai);
+  var siteInfo = [].concat(siteInfoKotosekai);
   siteInfo = siteInfo.concat(siteInfoAutopagerize);
+  chrome.storage.local.set({
+    'siteInfo': siteInfo,
+    'siteInfoFetchMillisecond': siteInfoFetchMillisecond,
+  });
   //console.log("loaded.", siteInfoKotosekai, siteInfoAutopagerize, siteInfo);
 }
 function UpdateSiteInfo(){
@@ -79,39 +103,52 @@ async function UpdateConvertTablesAsync(){
   }
   let convertTableTmp = await FetchJson(convertTableURL);
   let regexpConvertTableTmp = await FetchJson(regexpConvertTableURL);
-  convertTableFetchMillisecond = (new Date()).getTime();
-  if(convertTableTmp){ convertTable = convertTableTmp; }
-  if(regexpConvertTableTmp){ regexpConvertTable = regexpConvertTableTmp; }
+  let convertTableFetchMillisecond = (new Date()).getTime();
+  chrome.storage.local.set({
+    convertTableFetchMillisecond: convertTableFetchMillisecond
+  });
+  if(convertTableTmp){
+    chrome.storage.local.set({
+      convertTable: convertTableTmp
+    });
+  }
+  if(regexpConvertTableTmp){
+    chrome.storage.local.set({
+      regexpConvertTable: regexpConvertTableTmp
+    });
+  }
 }
 function UpdateConvertTable(){
   UpdateConvertTablesAsync();
 }
 UpdateConvertTable();
 
-function GetSiteInfo(){
+async function GetSiteInfo(){
   let thisDate = new Date();
   let expireMs = thisDate.getTime() - expireMillisecond;
-  let currentSiteInfo = siteInfo;
-  if(siteInfoFetchMillisecond < expireMs){
-    UpdateSiteInfo();
-  }
+  let currentSiteInfo = await storageGetPromiseOne(chrome.storage.local, "siteInfo");
+  chrome.storage.local.get(["siteInfoFetchMillisecond"], ({siteInfoFetchMillisecond}) => {
+    if(siteInfoFetchMillisecond < expireMs){
+      UpdateSiteInfo();
+    }
+  });
   return currentSiteInfo;
 }
 
-function GetConvertTables(){
+async function GetConvertTables(){
   let thisDate = new Date();
   let expireMs = thisDate.getTime() - expireMillisecond;
-  let currentConvertTable = convertTable;
-  let currentRegexpConvertTable = regexpConvertTable;
+  let currentConvertTable = await storageGetPromiseOne(chrome.storage.local, "convertTable");;
+  let currentRegexpConvertTable = await storageGetPromiseOne(chrome.storage.local, "regexpConvertTable");
+  let convertTableFetchMillisecond = await storageGetPromiseOne(chrome.storage.local, "convertTableFetchMillisecond"); 
   if(convertTableFetchMillisecond < expireMs){
     UpdateConvertTable();
   }
   return [currentConvertTable, currentRegexpConvertTable];
 }
 
-function SearchSiteInfo(url){
+function SearchSiteInfo(url, siteInfo){
   var result = [];
-  let siteInfo = GetSiteInfo();
   siteInfo.forEach(function(info){
     if("data" in info){
       let data = info["data"];
@@ -136,10 +173,10 @@ function StatusEndSpeech(){
   //status = "stop";
 }
 
-function RunStartSpeech(tabId, url, kickType){
-  let siteInfoArray = SearchSiteInfo(url);
-  let convertTables = GetConvertTables();
-  //console.log("RunStartSpeech", localStorage["lang"], localStorage, tabId);
+async function RunStartSpeech(tabId, url, kickType){
+  let siteInfo = await GetSiteInfo();
+  let siteInfoArray = SearchSiteInfo(url, siteInfo);
+  let convertTables = await GetConvertTables();
   chrome.storage.local.get([
     "lang", "voice", "pitch", "rate", "volume"
     , "isScrollEnabled", "isAutopagerizeContinueEnabled", "scrollPositionRatio"
