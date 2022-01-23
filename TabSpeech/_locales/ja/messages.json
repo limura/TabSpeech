@@ -77,6 +77,12 @@
   "OptionsPageIsRateMaxStrechTextWarning": {
     "message": "ある程度の速度以上を設定すると読み上げられなくなったり速度設定が無視される話者が存在するため、このオプションをONにした後は、必ず読み上げテストを行い、意図通りに読み上げが行われる事を確認してください。"
   },
+  "OptionsPageAnnounceTitle": {
+    "message": "TabSpeech をご利用いただきありがとうございます。"
+  },
+  "OptionsPageAnnounceMessage": {
+    "message": "以下の設定のうち、Speaker の部分を適切な言語と話者に設定の上、「Test」を用いて発話が可能であるかを確認した後、「Save」を押して設定を保存してください。最低限それだけは実行されていませんとTabSpeechは動作しません。"
+  },
   "DefaultConvertTableURL": {
     "message": "http://wedata.net/databases/TTS%20Convert%20Table%20for%20Apple%20TTS%20Engine%20(jp)/items.json"
   },

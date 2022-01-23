@@ -157,26 +157,26 @@ function testButtonClicked(speechSynthesis, voices){
 function saveButtonClicked(voices, savedInformationElement){
   let lang = getLang(voices);
   if(lang){
-    localStorage["lang"] = lang;
+    chrome.storage.local.set({lang: lang});
   }else{
-    delete localStorage.lang;
+    chrome.storage.local.remove("lang");
   }
   let voice = getVoice(voices);
   if(voice){
-    localStorage["voice"] = voice.name;
+    chrome.storage.local.set({voice: voice.name});
   }else{
-    delete localStorage.voice;
+    chrome.storage.local.remove("voice");
   }
-  localStorage["pitch"] = getPitch();
-  localStorage["rate"] = getRate();
-  localStorage["volume"] = getVolume();
-  localStorage["isScrollEnabled"] = getIsScrollEnabled();
-  localStorage["scrollPositionRatio"] = getScrollPositionRatio();
-  localStorage["isAutopagerizeContinueEnabled"] = getIsAutopagerizeContinueEnabled();
-  localStorage["convertTableURL"] = getConvertTableURL();
-  localStorage["regexpConvertTableURL"] = getRegexpConvertTableURL();
-
-console.log("saved localStorage", localStorage);
+  chrome.storage.local.set({
+    "pitch": getPitch(),
+    "rate": getRate(),
+    "volume": getVolume(),
+    "isScrollEnabled": getIsScrollEnabled(),
+    "scrollPositionRatio": getScrollPositionRatio(),
+    "isAutopagerizeContinueEnabled": getIsAutopagerizeContinueEnabled(),
+    "convertTableURL": getConvertTableURL(),
+    "regexpConvertTableURL": getRegexpConvertTableURL(),
+  });
 
   savedInformationElement.innerHTML = "saved!";
   setTimeout(function(){
@@ -196,73 +196,77 @@ function selectSelected(selectElement, targetValue){
 }
 
 function loadSettings(voices){
-  if("lang" in localStorage){
-    let lang = localStorage.lang;
-    selectSelected(document.getElementById("langSelector").childNodes[0], lang);
-    let voiceSelectorElement = document.getElementById("voiceSelector");
-    createVoiceSelectElement(voiceSelectorElement, voices, lang);
-  }
-  if("voice" in localStorage){
-    selectSelected(document.getElementById("voiceSelector").childNodes[0], localStorage.voice);
-  }
-  if("pitch" in localStorage){
-    document.getElementById("pitch").value = localStorage.pitch;
-  }
-  if("rate" in localStorage){
-    let rateValue = localStorage.rate;
-    let rate = document.getElementById("rate");
-    if(rateValue >= 2.0){
-      document.getElementById("isRateMaxStrech").checked = true;
-      rate.max = 10;
+  chrome.storage.local.get([
+    "lang",
+    "voice",
+    "pitch",
+    "rate",
+    "volume",
+    "isScrollEnabled",
+    "scrollPositionRatio",
+    "isAutopagerizeContinueEnabled",
+    "convertTableURL",
+    "regexpConvertTableURL",
+  ], (localStorage) => {
+    if("lang" in localStorage){
+      let lang = localStorage.lang;
+      selectSelected(document.getElementById("langSelector").childNodes[0], lang);
+      let voiceSelectorElement = document.getElementById("voiceSelector");
+      createVoiceSelectElement(voiceSelectorElement, voices, lang);
     }
-    rate.value = rateValue;
-    document.getElementById("rateValue").innerHTML = rateValue;
-  }
-  if("volume" in localStorage){
-    document.getElementById("volume").value = localStorage.volume;
-  }
-  if("isScrollEnabled" in localStorage){
-    let isScrollEnabled = localStorage.isScrollEnabled;
-    if(isScrollEnabled == "false"){
-      document.getElementById("isScrollEnabled").checked = false;
+    if("voice" in localStorage){
+      selectSelected(document.getElementById("voiceSelector").childNodes[0], localStorage.voice);
+    }
+    if("pitch" in localStorage){
+      document.getElementById("pitch").value = localStorage.pitch;
+    }
+    if("rate" in localStorage){
+      let rateValue = localStorage.rate;
+      let rate = document.getElementById("rate");
+      if(rateValue >= 2.0){
+        document.getElementById("isRateMaxStrech").checked = true;
+        rate.max = 10;
+      }
+      rate.value = rateValue;
+      document.getElementById("rateValue").innerHTML = rateValue;
+    }
+    if("volume" in localStorage){
+      document.getElementById("volume").value = localStorage.volume;
+    }
+    if("isScrollEnabled" in localStorage){
+      let isScrollEnabled = localStorage.isScrollEnabled;
+      if(isScrollEnabled == "false"){
+        document.getElementById("isScrollEnabled").checked = false;
+      }else{
+        document.getElementById("isScrollEnabled").checked = true;
+      }
+    }
+    if("scrollPositionRatio" in localStorage){
+      document.getElementById("scrollPositionRatio").value = localStorage.scrollPositionRatio;
+    }
+    if("isAutopagerizeContinueEnabled" in localStorage){
+      let isAutopagerizeContinueEnabled = localStorage.isAutopagerizeContinueEnabled;
+      if(isAutopagerizeContinueEnabled == "false"){
+        document.getElementById("isAutopagerizeContinueEnabled").checked = false;
+      }else{
+        document.getElementById("isAutopagerizeContinueEnabled").checked = true;
+      }
+    }
+    if("convertTableURL" in localStorage){
+      document.getElementById("convertTableURL").value = localStorage.convertTableURL;
     }else{
-      document.getElementById("isScrollEnabled").checked = true;
+      document.getElementById("convertTableURL").value = defaultConvertTableURL;
     }
-  }
-  if("scrollPositionRatio" in localStorage){
-    document.getElementById("scrollPositionRatio").value = localStorage.scrollPositionRatio;
-  }
-  if("isAutopagerizeContinueEnabled" in localStorage){
-    let isAutopagerizeContinueEnabled = localStorage.isAutopagerizeContinueEnabled;
-    if(isAutopagerizeContinueEnabled == "false"){
-      document.getElementById("isAutopagerizeContinueEnabled").checked = false;
+    if("regexpConvertTableURL" in localStorage){
+      document.getElementById("regexpConvertTableURL").value = localStorage.regexpConvertTableURL;
     }else{
-      document.getElementById("isAutopagerizeContinueEnabled").checked = true;
+      document.getElementById("regexpConvertTableURL").value = defaultRegexpConvertTableURL;
     }
-  }
-  if("convertTableURL" in localStorage){
-    document.getElementById("convertTableURL").value = localStorage.convertTableURL;
-  }else{
-    document.getElementById("convertTableURL").value = defaultConvertTableURL;
-  }
-  if("regexpConvertTableURL" in localStorage){
-    document.getElementById("regexpConvertTableURL").value = localStorage.regexpConvertTableURL;
-  }else{
-    document.getElementById("regexpConvertTableURL").value = defaultRegexpConvertTableURL;
-  }
+  });
 }
 
 function clearSettings(){
-  delete localStorage.removeItem("lang");
-  delete localStorage.removeItem("voice");
-  delete localStorage.removeItem("pitch");
-  delete localStorage.removeItem("rate");
-  delete localStorage.removeItem("volume");
-  delete localStorage.ramoveItem("isScrollEnabled");
-  delete localStorage.removeItem("scrollPositionRatio");
-  delete localStorage.ramoveItem("isAutopagerizeContinueEnabled");
-  delete localStorage.removeItem("contertTableURL");
-  delete localStorage.removeItem("regexpConvertTableURL");
+  chrome.storage.local.clear();
   location.reload();
 }
 
@@ -309,6 +313,26 @@ function initRateMaxStrechExtension(rateId, valueId, toggleId, warningId){
   });
 }
 
+// localStorage を使っていた場合、そちらから chrome.storage.local に移行します。
+function migrateFromLocalStorage(){
+  chrome.storage.local.get(["migrateFromLocalStorage"], (data) => {
+    if("migrateFromLocalStorage" in data){return;}
+    chrome.storage.local.set({
+      "lang": localStorage["lang"],
+      "voice": localStorage["voice"],
+      "pitch": localStorage["pitch"],
+      "rate": localStorage["rate"],
+      "volume": localStorage["volume"],
+      "isScrollEnabled": localStorage["isScrollEnabled"],
+      "scrollPositionRatio": localStorage["scrollPositionRatio"],
+      "isAutopagerizeContinueEnabled": localStorage["isAutopagerizeContinueEnabled"],
+      "convertTableURL": localStorage["convertTableURL"],
+      "regexpConvertTableURL": localStorage["regexpConvertTableURL"],
+      "migrateFromLocalStorage": true,
+    });
+  });
+}
+
 let speechSynthesis = window.speechSynthesis;
 function init(){
   let voices = getVoiceList(speechSynthesis);
@@ -342,4 +366,5 @@ document.getElementById('configureShortcuts').onclick = function(e) {
 const awaitVoices = new Promise(resolve => speechSynthesis.onvoiceschanged = resolve);
 awaitVoices.then(()=>{init();});
 
+migrateFromLocalStorage();
 localizeHtmlPage();

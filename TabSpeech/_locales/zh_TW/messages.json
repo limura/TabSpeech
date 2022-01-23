@@ -77,6 +77,12 @@
   "OptionsPageIsRateMaxStrechTextWarning": {
     "message": "如果設置了某個速度，某些揚聲器可能無法大聲朗讀，或者可能會忽略速度設置。因此，在打開此選項後，請務必執行讀數測試以確保按預期執行了讀數。 拜託"
   },
+  "OptionsPageAnnounceTitle": {
+    "message": "感謝您使用 TabSpeech"
+  },
+  "OptionsPageAnnounceMessage": {
+    "message": "在以下設置中，將揚聲器部分設置為合適的語言和揚聲器，使用“測試”檢查是否可以說話，然後按“保存”保存設置。 如果至少不這樣做，TabSpeech 將不起作用。"
+  },
   "DefaultConvertTableURL": {
     "message": ""
   },

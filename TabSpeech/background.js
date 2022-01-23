@@ -43,6 +43,18 @@ function FetchSiteInfo(url){
   });
 }
 
+function GetFromStorage(key){
+  return new Promise(resolve => {
+    chrome.storage.local.get([key], (data) => {
+      if(key in data){
+        resolve(data[key]);
+      }else{
+        resolve(undefined);
+      }
+    });
+  });
+}
+
 async function UpdateSiteInfoAsync(){
   let siteInfoKotosekai = await FetchSiteInfo(kotosekaiSiteInfoURL);
   let siteInfoAutopagerize = await FetchSiteInfo(autopagerizeSiteInfoURL);
@@ -57,11 +69,11 @@ function UpdateSiteInfo(){
 UpdateSiteInfo();
 
 async function UpdateConvertTablesAsync(){
-  let convertTableURL = localStorage["convertTableURL"];
+  let convertTableURL = await GetFromStorage("convertTableURL");
   if(!convertTableURL){
     convertTableURL = defaultConvertTableURL;
   }
-  let regexpConvertTableURL = localStorage["regexpConvertTableURL"];
+  let regexpConvertTableURL = await GetFromStorage("regexpConvertTableURL");
   if(!regexpConvertTableURL){
     regexpConvertTableURL = defaultRegexpConvertTableURL;
   }
@@ -118,30 +130,35 @@ function SearchSiteInfo(url){
 
 var status = "stop";
 function StatusStartSpeech(){
-  status = "speech";
+  //status = "speech";
 }
 function StatusEndSpeech(){
-  status = "stop";
+  //status = "stop";
 }
 
 function RunStartSpeech(tabId, url, kickType){
   let siteInfoArray = SearchSiteInfo(url);
   let convertTables = GetConvertTables();
   //console.log("RunStartSpeech", localStorage["lang"], localStorage, tabId);
-  chrome.tabs.sendMessage(tabId, {
-    "type": kickType,
-    "SiteInfoArray": siteInfoArray,
-    "lang": localStorage["lang"],
-    "voice": localStorage["voice"],
-    "pitch": localStorage["pitch"],
-    "rate": localStorage["rate"],
-    "volume": localStorage["volume"],
-    "isScrollEnabled": localStorage["isScrollEnabled"],
-    "isAutopagerizeContinueEnabled": localStorage["isAutopagerizeContinueEnabled"],
-    "convertTable": convertTables[0],
-    "regexpConvertTable": convertTables[1],
-    "scrollPositionRatio": localStorage["scrollPositionRatio"],
-  });
+  chrome.storage.local.get([
+    "lang", "voice", "pitch", "rate", "volume"
+    , "isScrollEnabled", "isAutopagerizeContinueEnabled", "scrollPositionRatio"
+  ], (localStorage) => {
+    chrome.tabs.sendMessage(tabId, {
+      "type": kickType,
+      "SiteInfoArray": siteInfoArray,
+      "lang": localStorage["lang"],
+      "voice": localStorage["voice"],
+      "pitch": localStorage["pitch"],
+      "rate": localStorage["rate"],
+      "volume": localStorage["volume"],
+      "isScrollEnabled": localStorage["isScrollEnabled"],
+      "isAutopagerizeContinueEnabled": localStorage["isAutopagerizeContinueEnabled"],
+      "convertTable": convertTables[0],
+      "regexpConvertTable": convertTables[1],
+      "scrollPositionRatio": localStorage["scrollPositionRatio"],
+    });
+  })
   StatusStartSpeech();
 }
 
@@ -159,17 +176,19 @@ function RunResumeSpeech(tabId){
 }
 
 function KickSpeech(tabId, url){
+  /* TODO: status がいらなそうなので外して試します。いらないなら後で消します。
   if(status == "speech"){
     RunStopSpeech(tabId);
     return;
   }
+  */
   RunStartSpeech(tabId, url, "KickSpeech");
 }
 
-chrome.pageAction.onClicked.addListener(function(tab){KickSpeech(tab.id, tab.url);});
+chrome.action.onClicked.addListener(function(tab){KickSpeech(tab.id, tab.url);});
 
 function enableActionButton(tabId){
-  chrome.pageAction.show(tabId);
+  chrome.action.enable(tabId);
 }
 
 chrome.tabs.onUpdated.addListener(function(tabId){
@@ -271,21 +290,37 @@ chrome.commands.onCommand.addListener(function(command) {
   }
 });
 
-/*
-chrome.contextMenus.create({
-    title: chrome.i18n.getMessage("RightClickMenu_StartSpeechHere_Title"),
+
+// service worker が起動して一回だけ動かくやーつ
+self.addEventListener('install', ev => {
+  // TODO: chrome.i18n.getMessage() が service worker 内部では使えなくなったので一時的にこう回避します
+  const langCode = navigator.language;
+  const rightClickMenuTitleMap = {
+    en: "Speech only the selection",
+    ja: "選択範囲のみを発話",
+    zh_CN: "只说选择",
+    zh_TW: "只說選擇",
+  }
+  var rightClickMenuTitle = rightClickMenuTitleMap[langCode];
+  if(rightClickMenuTitle.length <= 0){
+    rightClickMenuTitle = rightClickMenuTitleMap["en"];
+  }
+
+  chrome.contextMenus.create({
+    id: "TabSpeech_ContextMenu_StartSpeechOnlySelected",
+    title: rightClickMenuTitle,
     contexts: ["selection"],
     type: "normal",
-    onclick: function (info) {
-	StartSpeech();
+  });
+  
+  chrome.contextMenus.onClicked.addListener((info,tab) => {
+    StartSpeechOnlySelected();
+  });
+
+  chrome.storage.local.get(["migrateFromLocalStorage"], (data) => {
+    if(!("migrateFromLocalStorage" in data)) {
+      chrome.runtime.openOptionsPage();
     }
-}); */
-chrome.contextMenus.create({
-    title: chrome.i18n.getMessage("RightClickMenu_SpeechSelected_Title"),
-    contexts: ["selection"],
-    type: "normal",
-    onclick: function (info) {
-	StartSpeechOnlySelected();
-    }
+  });
 });
  
