@@ -13,9 +13,19 @@ function localizeHtmlPage() {
   });
 }
 
-function getVoiceList(speechSynthesis) {
-  let voices = speechSynthesis.getVoices();
-  return voices;
+async function getVoiceList(speechSynthesis) {
+  return new Promise(resolve =>{
+    if(chrome.tts){
+      chrome.tts.getVoices((data)=>{
+        console.log("voices on chrome.tts", data);
+        resolve(data);
+      })
+    }else{
+      let voices = speechSynthesis.getVoices();
+      console.log("voices on speechSynthesis", voices);
+      resolve(voices);
+    }
+  });
 }
 
 function getVoiceLangueges(voices) {
@@ -42,6 +52,8 @@ function getVoiceNames(voices) {
   for(let voice of voices){
     if("name" in voice){
       resultSet.add(voice.name);
+    }else if("voiceName" in voice){
+      resultSet.add(voice.voiceName);
     }
   }
   return Array.from(resultSet.values());
@@ -50,6 +62,9 @@ function getVoiceNames(voices) {
 function searchVoiceFromName(voices, name){
   for(let voice of voices){
     if("name" in voice && voice.name == name){
+      return voice;
+    }
+    if("voiceName" in voice && voice.voiceName == name){
       return voice;
     }
   }
@@ -128,7 +143,35 @@ function getRegexpConvertTableURL(){
   return document.getElementById("regexpConvertTableURL").value;
 }
 
+function testOnChromeTTS(voices){
+  console.log("test on chrome tts", voices);
+  let testText = getTestText();
+  let options = {};
+  let lang = getLang(voices);
+  if(lang){
+    options.lang = lang;
+  }
+  let voice = getVoice(voices);
+  if(voice){
+    options.voiceName = voice.voiceName;
+    if("extensionId" in voice){
+      options.extensionId = voice.extensionId;
+    }
+  }
+  options.pitch = Number(getPitch());
+  options.rate = Number(getRate());
+  options.volume = Number(getVolume());
+
+  console.log(testText, options);
+
+  chrome.tts.speak(testText, options);
+}
+
 function testButtonClicked(speechSynthesis, voices){
+  if(chrome.tts){
+    testOnChromeTTS(voices);
+    return;
+  }
   speechSynthesis.cancel();
   let testText = getTestText();
   let utterance = new SpeechSynthesisUtterance(testText);
@@ -163,7 +206,20 @@ function saveButtonClicked(voices, savedInformationElement){
   }
   let voice = getVoice(voices);
   if(voice){
-    chrome.storage.local.set({voice: voice.name});
+    if(voice.voiceName){
+      chrome.storage.local.set({voice: voice.voiceName});
+      console.log("save: voice", voice.voiceName);
+    }else{
+      chrome.storage.local.set({voice: voice.name});
+      console.log("save: voice", voice.name);
+    }
+    if(voice.extensionId){
+      chrome.storage.local.set({extensionId: voice.extensionId});
+      console.log("save: extensionId", voice.extensionId);
+    }else{
+      chrome.storage.local.remove("extensionId");
+      console.log("save: remove extensionId");
+    }
   }else{
     chrome.storage.local.remove("voice");
   }
@@ -334,8 +390,8 @@ function migrateFromLocalStorage(){
 }
 
 let speechSynthesis = window.speechSynthesis;
-function init(){
-  let voices = getVoiceList(speechSynthesis);
+async function init(){
+  let voices = await getVoiceList(speechSynthesis);
   let languageNameArray = ["DEFAULT"].concat(getVoiceLangueges(voices));
   let langElement = document.getElementById("langSelector");
   langElement.innerHTML = '';

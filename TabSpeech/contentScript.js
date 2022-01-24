@@ -18,10 +18,10 @@ function ResumeSpeech(){
 }
 
 function CreateVoiceSettingFromMessage(message) {
-  return CreateVoiceSetting(message.lang, message.voice, message.pitch, message.rate, message.volume, message.isScrollEnabled, message.isAutopagerizeContinueEnabled, message.convertTable, message.regexpConvertTable, message.scrollPositionRatio);
+  return CreateVoiceSetting(message.lang, message.voice, message.pitch, message.rate, message.volume, message.isScrollEnabled, message.isAutopagerizeContinueEnabled, message.convertTable, message.regexpConvertTable, message.scrollPositionRatio, message.extensionId);
 }
 
-function CreateVoiceSetting(lang, voice, pitch, rate, volume, isScrollEnabled, isAutopagerizeContinueEnabled, convertTable, regexpConvertTable, scrollPositionRatio){
+function CreateVoiceSetting(lang, voice, pitch, rate, volume, isScrollEnabled, isAutopagerizeContinueEnabled, convertTable, regexpConvertTable, scrollPositionRatio, extensionId){
   return {
     "lang": lang,
     "voice": voice,
@@ -33,6 +33,7 @@ function CreateVoiceSetting(lang, voice, pitch, rate, volume, isScrollEnabled, i
     "convertTable": convertTable,
     "regexpConvertTable": regexpConvertTable,
     "scrollPositionRatio": scrollPositionRatio,
+    "extensionId": extensionId,
   };
 }
 
@@ -407,6 +408,23 @@ function GetScrollRatio(voiceSetting) {
   return 0.65;
 }
 
+let speechEventHandlerHolder = {};
+function SpeechOnBoundary(event){
+  if(speechEventHandlerHolder.onboundary){
+    speechEventHandlerHolder.onboundary(event);
+  }
+}
+function SpeechOnStart(event){
+  if(speechEventHandlerHolder.onstart){
+    speechEventHandlerHolder.onstart(event);
+  }
+}
+function SpeechOnEnd(event){
+  if(speechEventHandlerHolder.onend){
+    speechEventHandlerHolder.onend(event);
+  }
+}
+
 function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting, SiteInfo, maxLength = -1){
   StopSpeech();
   let wholeText = GenerateWholeText(elementArray, 0);
@@ -422,6 +440,7 @@ function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting,
     speechText = speechText.substr(0, maxLength);
   }
   let utterance = new SpeechSynthesisUtterance(speechText);
+  speechEventHandlerHolder.onboundary =
   utterance.onboundary = function(event){
     //console.log("SpeechSynthesisUtterance Event onBoundary", event.charIndex, event);
     let displayTextIndex = SpeechTextIndexToDisplayTextIndex(speechTextHints, event.charIndex);
@@ -434,10 +453,12 @@ function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting,
     }
     BoundarySpeechEventHandle(elementArray, event);
   };
+  speechEventHandlerHolder.onstart =
   utterance.onstart = function(event){
     //console.log("SpeechSynthesisUtterance Event onStart", event);
     chrome.runtime.sendMessage({"type": "StartSpeech"});
   };
+  speechEventHandlerHolder.onend =
   utterance.onend = function(event){
     //console.log("SpeechSynthesisUtterance Event onEnd", event);
     RemoveHighlightSpeechSentence();
@@ -456,13 +477,22 @@ function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting,
       return;
     }
   };
+  speechEventHandlerHolder.onerror =
   utterance.onerror = function(event){console.log("SpeechSynthesisUtterance Event onError", event);};
+  speechEventHandlerHolder.onmark =
   utterance.onmark = function(event){console.log("SpeechSynthesisUtterance Event onMark", event);};
+  speechEventHandlerHolder.onpause =
   utterance.onpause = function(event){console.log("SpeechSynthesisUtterance Event onPause", event);};
+  speechEventHandlerHolder.onresume =
   utterance.onresume = function(event){console.log("SpeechSynthesisUtterance Event onResume", event);};
   ApplyVoiceSetting(utterance, voiceSetting);
   //console.log("speech", text);
-  speechSynthesis.speak(utterance);
+  //speechSynthesis.speak(utterance);
+  chrome.runtime.sendMessage({
+    type: "SpeechOnServiceWorker",
+    speechText: speechText,
+    voiceSetting: voiceSetting,
+  });
   return true;
 }
 
@@ -516,7 +546,7 @@ chrome.runtime.onMessage.addListener(
       runSpeech(
         message.SiteInfoArray.concat([{"data":{"pageElement": "//body", "nextLink": "", "url": ".*"}}]),
         CreateVoiceSettingFromMessage(message),
-	false
+	      false
       );
       break;
     case "KickSpeechRepeatMode":
@@ -525,7 +555,7 @@ chrome.runtime.onMessage.addListener(
       runSpeech(
         message.SiteInfoArray.concat([{"data":{"pageElement": "//body", "nextLink": "", "url": ".*"}}]),
         CreateVoiceSettingFromMessage(message),
-	false
+	      false
       );
       break;
     case "KickSpeechOnlySelected":
@@ -534,7 +564,7 @@ chrome.runtime.onMessage.addListener(
       runSpeech(
         message.SiteInfoArray.concat([{"data":{"pageElement": "//body", "nextLink": "", "url": ".*"}}]),
         CreateVoiceSettingFromMessage(message),
-	true
+	      true
       );
       break;
     case "StopSpeech":
@@ -549,6 +579,15 @@ chrome.runtime.onMessage.addListener(
     case "ResumeSpeech":
       isStopped = false;
       ResumeSpeech();
+      break;
+    case "SpeechOnServiceWorker_OnBoundary":
+      SpeechOnBoundary(message.event);
+      break;
+    case "SpeechOnServiceWorker_OnStart":
+      SpeechOnStart(message.event);
+      break;
+    case "SpeechOnServiceWorker_OnEnd":
+      SpeechOnEnd(message.event);
       break;
     default:
       break;

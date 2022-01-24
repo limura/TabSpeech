@@ -180,6 +180,7 @@ async function RunStartSpeech(tabId, url, kickType){
   chrome.storage.local.get([
     "lang", "voice", "pitch", "rate", "volume"
     , "isScrollEnabled", "isAutopagerizeContinueEnabled", "scrollPositionRatio"
+    , "extensionId"
   ], (localStorage) => {
     chrome.tabs.sendMessage(tabId, {
       "type": kickType,
@@ -194,6 +195,7 @@ async function RunStartSpeech(tabId, url, kickType){
       "convertTable": convertTables[0],
       "regexpConvertTable": convertTables[1],
       "scrollPositionRatio": localStorage["scrollPositionRatio"],
+      "extensionId": localStorage["extensionId"],
     });
   })
   StatusStartSpeech();
@@ -279,6 +281,91 @@ function StartSpeechOnlySelected(){
   });
 }
 
+// ServiceWorker 側で発話(window.speechSynthesis ではなく chrome.tts で発話)します。
+// これは window.speechSynthesis(contentScript側)で発話しようとすると、
+// そのタブでキー入力等があった後でないと 'not-allowed' で発話が失敗するため、仕方なく
+// ServiceWorker 側で動かすようにしたものです。
+// そのため、発話の開始時に contentScript 側から ServiceWorker側 を呼び出し、
+// ServiceWorker はその設定で発話と発話周りのイベントハンドルだけを行い、
+// 発生したイベントは contentScript に投げ返すような形で実装しています。
+function RunSpeechOnServiceWorker(tabId, request){
+  let speechText = request.speechText;
+  let options = {};
+  let setting = request.voiceSetting;
+  let lang = setting.lang;
+  if(lang){
+    options.lang = lang;
+  }
+  options.voiceName = setting.voice;
+  options.pitch = Number(setting.pitch);
+  options.rate = Number(setting.rate);
+  options.volume = Number(setting.volume);
+  options.extensionId = setting.extensionId;
+  
+  //options.desiredEventTypes = ["word", "start", "end", "error", "sentence", "marker", "interrupted", "cancelled", "pause", "resume"];
+  options.onEvent = (event) => {
+    //console.log("chrome.tts onevent", event);
+    switch(event.type) {
+      case "start":
+        chrome.tabs.sendMessage(tabId, {
+          type: "SpeechOnServiceWorker_OnStart",
+          event: event,
+        });
+        break;
+      case "word":
+        chrome.tabs.sendMessage(tabId, {
+          type: "SpeechOnServiceWorker_OnBoundary",
+          event: event,
+        });
+        break;
+      case "sentence":
+        chrome.tabs.sendMessage(tabId, {
+          type: "SpeechOnServiceWorker_OnBoundary",
+          event: event,
+        });
+        break;
+      case "marker":
+        chrome.tabs.sendMessage(tabId, {
+          type: "SpeechOnServiceWorker_OnBoundary",
+          event: event,
+        });
+        break;
+      case "interrupted":
+        chrome.tabs.sendMessage(tabId, {
+          type: "SpeechOnServiceWorker_OnEnd",
+          event: event,
+        });
+        break;
+      case "cancelled":
+        chrome.tabs.sendMessage(tabId, {
+          type: "SpeechOnServiceWorker_OnEnd",
+          event: event,
+        });
+        break;
+      case "error":
+        chrome.tabs.sendMessage(tabId, {
+          type: "SpeechOnServiceWorker_OnEnd",
+          event: event,
+        });
+        break;
+      case "pause":
+        chrome.tabs.sendMessage(tabId, {
+          type: "SpeechOnServiceWorker_OnEnd",
+          event: event,
+        });
+        break;
+      case "resume":
+        chrome.tabs.sendMessage(tabId, {
+          type: "SpeechOnServiceWorker_OnStart",
+          event: event,
+        });
+        break;
+      }
+  };
+  //console.log("chrome.tts speak", speechText, options);
+  chrome.tts.speak(speechText, options);
+}
+
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse){
     switch(request.type){
@@ -303,6 +390,10 @@ chrome.runtime.onMessage.addListener(
       break;
     case "KickSpeechRepeatMode":
       StartSpeechRepeatMode();
+      break;
+    case "SpeechOnServiceWorker":
+      //console.log("Speech on ServiceWorker", sender, request);
+      RunSpeechOnServiceWorker(sender.tab.id, request);
       break;
     default:
       break;
