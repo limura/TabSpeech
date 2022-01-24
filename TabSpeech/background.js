@@ -301,7 +301,7 @@ function RunSpeechOnServiceWorker(tabId, request){
   options.rate = Number(setting.rate);
   options.volume = Number(setting.volume);
   options.extensionId = setting.extensionId;
-  
+
   //options.desiredEventTypes = ["word", "start", "end", "error", "sentence", "marker", "interrupted", "cancelled", "pause", "resume"];
   options.onEvent = (event) => {
     //console.log("chrome.tts onevent", event);
@@ -309,6 +309,12 @@ function RunSpeechOnServiceWorker(tabId, request){
       case "start":
         chrome.tabs.sendMessage(tabId, {
           type: "SpeechOnServiceWorker_OnStart",
+          event: event,
+        });
+        break;
+      case "end":
+        chrome.tabs.sendMessage(tabId, {
+          type: "SpeechOnServiceWorker_OnEnd",
           event: event,
         });
         break;
@@ -434,13 +440,6 @@ self.addEventListener('install', ev => {
     rightClickMenuTitle = rightClickMenuTitleMap["en"];
   }
 
-  chrome.contextMenus.create({
-    id: "TabSpeech_ContextMenu_StartSpeechOnlySelected",
-    title: rightClickMenuTitle,
-    contexts: ["selection"],
-    type: "normal",
-  });
-  
   chrome.contextMenus.onClicked.addListener((info,tab) => {
     StartSpeechOnlySelected();
   });
@@ -450,5 +449,13 @@ self.addEventListener('install', ev => {
       chrome.runtime.openOptionsPage();
     }
   });
+
+  chrome.contextMenus.create({
+    id: "TabSpeech_ContextMenu_StartSpeechOnlySelected",
+    title: rightClickMenuTitle,
+    contexts: ["selection"],
+    type: "normal",
+  }, () => chrome.runtime.lastError);
+  
 });
  
