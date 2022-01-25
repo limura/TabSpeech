@@ -601,4 +601,7 @@ chrome.runtime.onMessage.addListener(
   }
 );
 
+window.addEventListener('beforeunload', event => {
+  chrome.runtime.sendMessage({"type": "StopChromeTTS"});
+});
 //console.log("TabSpeech contentscript loaded.");

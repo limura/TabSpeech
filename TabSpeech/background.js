@@ -401,6 +401,9 @@ chrome.runtime.onMessage.addListener(
       //console.log("Speech on ServiceWorker", sender, request);
       RunSpeechOnServiceWorker(sender.tab.id, request);
       break;
+    case "StopChromeTTS":
+      chrome.tts.stop();
+      break;
     default:
       break;
     }
