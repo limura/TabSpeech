@@ -368,6 +368,7 @@ function RunSpeechOnServiceWorker(tabId, request){
         break;
       }
   };
+  chrome.storage.local.set({currentSpeechTabId: tabId});
   //console.log("chrome.tts speak", speechText, options);
   chrome.tts.speak(speechText, options);
 }
@@ -402,7 +403,11 @@ chrome.runtime.onMessage.addListener(
       RunSpeechOnServiceWorker(sender.tab.id, request);
       break;
     case "StopChromeTTS":
-      chrome.tts.stop();
+      chrome.storage.local.get(["currentSpeechTabId"], (data)=>{
+        if(sender.tab.id == data.currentSpeechTabId){
+          chrome.tts.stop();
+        }
+      });
       break;
     default:
       break;
