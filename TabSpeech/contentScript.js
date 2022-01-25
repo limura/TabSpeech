@@ -78,17 +78,20 @@ function ScrollToElement(element, index, margin) {
   if(index > 0){
     range.setStart(element, index);
   }
+  let xMargin = window.innerWidth * margin;
+  let yMargin = window.innerHeight * margin;
   rect = range.getBoundingClientRect();
-  let x = window.pageXOffset + rect.right + margin;
-  let y = window.pageYOffset + rect.top - window.innerHeight + margin;
-  //window.scroll(x, y);
+  let x = window.pageXOffset + rect.left - xMargin;
+  let y = window.pageYOffset + rect.top - window.innerHeight + yMargin;
+  if(rect.x == 0 && rect.y == 0) { return; }
+  //window.scrollTo({left: x, top: y, behavior: "smooth"});
   window.scrollTo({top: y, behavior: "smooth"});
 }
 
 function ScrollToIndex(index, margin){
   let elementData = SearchElementFromIndex(elementArray, index);
   if(elementData){
-    ScrollToElement(elementData.element, elementData.index, 30);
+    ScrollToElement(elementData.element, elementData.index, margin);
   }
 }
 
@@ -448,7 +451,7 @@ function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting,
     if(elementData){
       HighlightSpeechSentence(elementData.element, elementData.index);
       if(voiceSetting.isScrollEnabled == "true"){ // localStorage には boolean が入らないぽいので文字列で入れている
-        ScrollToElement(elementData.element, elementData.index, window.innerHeight * GetScrollRatio(voiceSetting));
+        ScrollToElement(elementData.element, elementData.index, GetScrollRatio(voiceSetting));
       }
     }
     BoundarySpeechEventHandle(elementArray, event);
@@ -487,12 +490,15 @@ function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting,
   utterance.onresume = function(event){console.log("SpeechSynthesisUtterance Event onResume", event);};
   ApplyVoiceSetting(utterance, voiceSetting);
   //console.log("speech", text);
-  //speechSynthesis.speak(utterance);
-  chrome.runtime.sendMessage({
-    type: "SpeechOnServiceWorker",
-    speechText: speechText,
-    voiceSetting: voiceSetting,
-  });
+  if(chrome){
+    chrome.runtime.sendMessage({
+      type: "SpeechOnServiceWorker",
+      speechText: speechText,
+      voiceSetting: voiceSetting,
+    });
+  }else{
+    speechSynthesis.speak(utterance);
+  }
   return true;
 }
 
