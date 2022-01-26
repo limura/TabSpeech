@@ -84,6 +84,7 @@ function ScrollToElement(element, index, margin) {
   let x = window.pageXOffset + rect.left - xMargin;
   let y = window.pageYOffset + rect.top - window.innerHeight + yMargin;
   if(rect.x == 0 && rect.y == 0) { return; }
+  if(y < 0){ return; }
   //window.scrollTo({left: x, top: y, behavior: "smooth"});
   window.scrollTo({top: y, behavior: "smooth"});
 }
