@@ -83,6 +83,9 @@
   "DefaultRegexpConvertTableURL": {
     "message": ""
   },
+  "RightClickMenu_StartSpeech_Title": {
+    "message": "Start speech"
+  },
   "RightClickMenu_SpeechSelected_Title": {
     "message": "Speech only the selection"
   }

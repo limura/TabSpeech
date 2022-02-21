@@ -83,6 +83,9 @@
   "DefaultRegexpConvertTableURL": {
     "message": ""
   },
+  "RightClickMenu_StartSpeech_Title": {
+    "message": "開始話語"
+  },
   "RightClickMenu_SpeechSelected_Title": {
     "message": "只說選擇"
   }

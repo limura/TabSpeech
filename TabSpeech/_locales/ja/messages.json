@@ -83,6 +83,9 @@
   "DefaultRegexpConvertTableURL": {
     "message": "http://wedata.net/databases/TTS%20Regulaer%20Expression%20Convert%20Table%20for%20Apple%20TTS%20Engine%20(jp)/items.json"
   },
+  "RightClickMenu_StartSpeech_Title": {
+    "message": "発話を開始"
+  },
   "RightClickMenu_SpeechSelected_Title": {
     "message": "選択範囲のみを発話"
   }

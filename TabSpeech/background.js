@@ -271,15 +271,14 @@ chrome.commands.onCommand.addListener(function(command) {
   }
 });
 
-/*
 chrome.contextMenus.create({
-    title: chrome.i18n.getMessage("RightClickMenu_StartSpeechHere_Title"),
-    contexts: ["selection"],
+    title: chrome.i18n.getMessage("RightClickMenu_StartSpeech_Title"),
+    contexts: ["page"],
     type: "normal",
     onclick: function (info) {
 	StartSpeech();
     }
-}); */
+});
 chrome.contextMenus.create({
     title: chrome.i18n.getMessage("RightClickMenu_SpeechSelected_Title"),
     contexts: ["selection"],
