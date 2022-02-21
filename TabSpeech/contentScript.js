@@ -58,6 +58,38 @@ function ApplyVoiceSetting(utterance, voiceSetting){
   }
 }
 
+function InjectCSSText(cssText){
+  let style = document.createElement('style');
+  style.setAttribute('type', 'text/css');
+  document.body.appendChild(style);
+  style.sheet.insertRule(cssText, 0);
+}
+
+function InjectPopupElement(elementID){
+  const injectedElement = document.evaluate(`//*[@id='${elementID}']`, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null).snapshotItem(0);
+  if(injectedElement){ return injectedElement; }
+
+  const element = document.createElement('div');
+  element.id = elementID;
+  element.style.cssText = "display: none; position: fixed; top: 20px; bottom: 20px; left: 20px; width: 80%; border-radius: 8px; background: rgba(20,20,20,0.90); padding: 8px; overflow-y: auto;";
+  document.body.appendChild(element);
+  element.innerHTML = `<div>TabSpeech WARNING</div>
+  <div>何らかの入力が無いと発話できません。マウスでどこかをクリックするか、キー入力をしてから再度お試しください。</div>
+  `;
+}
+function DisplayPopupElement(elementID){
+
+}
+function ClearPopupElement(elementID){
+
+}
+InjectCSSText(`#TabSpeechPopupWarning {
+  animation-name: fadeInAnime;
+  animation-duration: 1;
+  
+}`);
+InjectPopupElement("TabSpeechPopupWarning");
+
 function GetPageElementArray(SiteInfo){
   if("data" in SiteInfo && "pageElement" in SiteInfo.data){
     return document.evaluate(SiteInfo.data.pageElement, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -491,7 +523,7 @@ function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting,
   utterance.onresume = function(event){console.log("SpeechSynthesisUtterance Event onResume", event);};
   ApplyVoiceSetting(utterance, voiceSetting);
   //console.log("speech", text);
-  if(chrome){
+  if(chrome && false){
     chrome.runtime.sendMessage({
       type: "SpeechOnServiceWorker",
       speechText: speechText,

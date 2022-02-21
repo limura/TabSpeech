@@ -59,7 +59,7 @@ function FetchSiteInfo(url){
     }).then(function(json){
       json.sort(siteInfoSortFunc);
       resolve(json);
-    });
+    }).catch(function(err){console.log("FetchSiteInfo error", err);});
   });
 }
 
@@ -437,19 +437,43 @@ chrome.commands.onCommand.addListener(function(command) {
 self.addEventListener('install', ev => {
   // TODO: chrome.i18n.getMessage() が service worker 内部では使えなくなったので一時的にこう回避します
   const langCode = navigator.language;
-  const rightClickMenuTitleMap = {
+  const rightClickMenuTitleMap_OnlySelection = {
     en: "Speech only the selection",
     ja: "選択範囲のみを発話",
     zh_CN: "只说选择",
     zh_TW: "只說選擇",
   }
-  var rightClickMenuTitle = rightClickMenuTitleMap[langCode];
-  if(rightClickMenuTitle.length <= 0){
-    rightClickMenuTitle = rightClickMenuTitleMap["en"];
+  var rightClickMenuTitle_OnlySelection = rightClickMenuTitleMap_OnlySelection[langCode];
+  if(rightClickMenuTitle_OnlySelection.length <= 0){
+    rightClickMenuTitle_OnlySelection = rightClickMenuTitleMap_OnlySelection["en"];
   }
+  const rightClickMenuId_OnlySelection = "TabSpeech_ContextMenu_StartSpeechOnlySelected";
+
+  const rightClickMenuTitleMap_StartSpeech = {
+    en: "Start Speech",
+    ja: "発話を開始",
+    zh_CN: "开始话语",
+    zh_TW: "開始話語",
+  }
+  var rightClickMenuTitle_StartSpeech = rightClickMenuTitleMap_StartSpeech[langCode];
+  if(rightClickMenuTitle_StartSpeech.length <= 0){
+    rightClickMenuTitle_StartSpeech = rightClickMenuTitleMap_StartSpeech["en"];
+  }
+  const rightClickMenuId_StartSpeech = "TabSpeech_ContextMenu_StartSpeech";
 
   chrome.contextMenus.onClicked.addListener((info,tab) => {
-    StartSpeechOnlySelected();
+    console.log("chrome.contextMenus.onClicked", info, tab, "chrome.i18n.getMessage", chrome.i18n.getMessage);
+    switch(info.menuItemId){
+      case rightClickMenuId_OnlySelection:
+        StartSpeechOnlySelected();
+        break;
+      case rightClickMenuId_StartSpeech:
+        StartSpeech();
+        break;
+      default:
+        console.log("unknown menuItemId", info.menuItemId, info);
+        break;
+    }
   });
 
   chrome.storage.local.get(["migrateFromLocalStorage"], (data) => {
@@ -459,9 +483,16 @@ self.addEventListener('install', ev => {
   });
 
   chrome.contextMenus.create({
-    id: "TabSpeech_ContextMenu_StartSpeechOnlySelected",
-    title: rightClickMenuTitle,
+    id: rightClickMenuId_OnlySelection,
+    title: rightClickMenuTitle_OnlySelection,
     contexts: ["selection"],
+    type: "normal",
+  }, () => chrome.runtime.lastError);
+
+  chrome.contextMenus.create({
+    id: rightClickMenuId_StartSpeech,
+    title: rightClickMenuTitle_StartSpeech,
+    contexts: ["page"],
     type: "normal",
   }, () => chrome.runtime.lastError);
   
