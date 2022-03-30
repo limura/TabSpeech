@@ -91,5 +91,8 @@
   },
   "RightClickMenu_SpeechSelected_Title": {
     "message": "只说选择"
+  },
+  "RightClickMenu_StartSpeechHere_Title": {
+    "message": "开始话语"
   }
 }

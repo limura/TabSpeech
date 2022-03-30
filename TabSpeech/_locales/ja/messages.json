@@ -91,5 +91,8 @@
   },
   "RightClickMenu_SpeechSelected_Title": {
     "message": "選択範囲のみを発話"
+  },
+  "RightClickMenu_StartSpeechHere_Title": {
+    "message": "発話を開始"
   }
 }

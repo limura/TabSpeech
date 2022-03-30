@@ -435,30 +435,7 @@ chrome.commands.onCommand.addListener(function(command) {
 
 // service worker が起動して一回だけ動かくやーつ
 self.addEventListener('install', ev => {
-  // TODO: chrome.i18n.getMessage() が service worker 内部では使えなくなったので一時的にこう回避します
-  const langCode = navigator.language;
-  const rightClickMenuTitleMap_OnlySelection = {
-    en: "Speech only the selection",
-    ja: "選択範囲のみを発話",
-    zh_CN: "只说选择",
-    zh_TW: "只說選擇",
-  }
-  var rightClickMenuTitle_OnlySelection = rightClickMenuTitleMap_OnlySelection[langCode];
-  if(rightClickMenuTitle_OnlySelection.length <= 0){
-    rightClickMenuTitle_OnlySelection = rightClickMenuTitleMap_OnlySelection["en"];
-  }
   const rightClickMenuId_OnlySelection = "TabSpeech_ContextMenu_StartSpeechOnlySelected";
-
-  const rightClickMenuTitleMap_StartSpeech = {
-    en: "Start Speech",
-    ja: "発話を開始",
-    zh_CN: "开始话语",
-    zh_TW: "開始話語",
-  }
-  var rightClickMenuTitle_StartSpeech = rightClickMenuTitleMap_StartSpeech[langCode];
-  if(rightClickMenuTitle_StartSpeech.length <= 0){
-    rightClickMenuTitle_StartSpeech = rightClickMenuTitleMap_StartSpeech["en"];
-  }
   const rightClickMenuId_StartSpeech = "TabSpeech_ContextMenu_StartSpeech";
 
   chrome.contextMenus.onClicked.addListener((info,tab) => {
@@ -484,14 +461,14 @@ self.addEventListener('install', ev => {
 
   chrome.contextMenus.create({
     id: rightClickMenuId_OnlySelection,
-    title: rightClickMenuTitle_OnlySelection,
+    title: chrome.i18n.getMessage("RightClickMenu_SpeechSelected_Title"),
     contexts: ["selection"],
     type: "normal",
   }, () => chrome.runtime.lastError);
 
   chrome.contextMenus.create({
     id: rightClickMenuId_StartSpeech,
-    title: rightClickMenuTitle_StartSpeech,
+    title: chrome.i18n.getMessage("RightClickMenu_StartSpeechHere_Title"),
     contexts: ["page"],
     type: "normal",
   }, () => chrome.runtime.lastError);

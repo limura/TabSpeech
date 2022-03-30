@@ -91,5 +91,8 @@
   },
   "RightClickMenu_SpeechSelected_Title": {
     "message": "Speech only the selection"
+  },
+  "RightClickMenu_StartSpeechHere_Title": {
+    "message": "Start Speech"
   }
 }
