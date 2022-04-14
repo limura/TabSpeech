@@ -412,6 +412,7 @@ chrome.runtime.onMessage.addListener(
     default:
       break;
     }
+    sendResponse();
   }
 );
 
