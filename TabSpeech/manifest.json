@@ -20,7 +20,10 @@
       "js": ["contentScript.js"]
     }
   ],
-  "options_page": "options.html",
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
   "permissions": ["activeTab", "contextMenus", "storage", "tts"],
   "commands": {
     "start-speech": {
