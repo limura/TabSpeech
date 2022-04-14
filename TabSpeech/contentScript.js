@@ -58,38 +58,6 @@ function ApplyVoiceSetting(utterance, voiceSetting){
   }
 }
 
-function InjectCSSText(cssText){
-  let style = document.createElement('style');
-  style.setAttribute('type', 'text/css');
-  document.body.appendChild(style);
-  style.sheet.insertRule(cssText, 0);
-}
-
-function InjectPopupElement(elementID){
-  const injectedElement = document.evaluate(`//*[@id='${elementID}']`, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null).snapshotItem(0);
-  if(injectedElement){ return injectedElement; }
-
-  const element = document.createElement('div');
-  element.id = elementID;
-  element.style.cssText = "display: none; position: fixed; top: 20px; bottom: 20px; left: 20px; width: 80%; border-radius: 8px; background: rgba(20,20,20,0.90); padding: 8px; overflow-y: auto;";
-  document.body.appendChild(element);
-  element.innerHTML = `<div>TabSpeech WARNING</div>
-  <div>何らかの入力が無いと発話できません。マウスでどこかをクリックするか、キー入力をしてから再度お試しください。</div>
-  `;
-}
-function DisplayPopupElement(elementID){
-
-}
-function ClearPopupElement(elementID){
-
-}
-InjectCSSText(`#TabSpeechPopupWarning {
-  animation-name: fadeInAnime;
-  animation-duration: 1;
-  
-}`);
-InjectPopupElement("TabSpeechPopupWarning");
-
 function GetPageElementArray(SiteInfo){
   if("data" in SiteInfo && "pageElement" in SiteInfo.data){
     return document.evaluate(SiteInfo.data.pageElement, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -113,10 +81,11 @@ function ScrollToElement(element, index, margin) {
   let xMargin = window.innerWidth * margin;
   let yMargin = window.innerHeight * margin;
   rect = range.getBoundingClientRect();
-  let x = window.pageXOffset + rect.left - xMargin;
-  let y = window.pageYOffset + rect.top - window.innerHeight + yMargin;
+  let x = window.scrollX + rect.left - xMargin;
+  let y = window.scrollY + rect.top - window.innerHeight + yMargin;
   if(rect.x == 0 && rect.y == 0) { return; }
-  if(y < 0){ return; }
+  if(y < -window.innerHeight){ return; }
+  //console.log("scrollTo:", y, window.scrollY, rect.top, window.innerHeight, yMargin, margin, rect.y, rect.top, rect);
   //window.scrollTo({left: x, top: y, behavior: "smooth"});
   window.scrollTo({top: y, behavior: "smooth"});
 }
