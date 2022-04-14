@@ -83,6 +83,18 @@
   "OptionsPageAnnounceMessage": {
     "message": "Of the following settings, set the Speaker part to the appropriate language and speaker, use \"Test\" to check if you can speak, and then press \"Save\" to save the settings. TabSpeech will not work if at least that is not done."
   },
+  "OptionsPageIsStartSpeechClickEnabled":{
+    "message": "Start reading by clicking two buttons (pressing at the same time)"
+  },
+  "OptionsPageIsStopSpeechClickEnabled":{
+    "message": "Stop reading by clicking two buttons (pressing at the same time)"
+  },
+  "OptionsPageStartSpeechClickTarget_None":{
+    "message": "Don't use"
+  },
+  "OptionsPageStopSpeechClickTarget_None":{
+    "message": "Don't use"
+  },
   "DefaultConvertTableURL": {
     "message": ""
   },

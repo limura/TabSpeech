@@ -83,6 +83,18 @@
   "OptionsPageAnnounceMessage": {
     "message": "在以下設置中，將揚聲器部分設置為合適的語言和揚聲器，使用“測試”檢查是否可以說話，然後按“保存”保存設置。 如果至少不這樣做，TabSpeech 將不起作用。"
   },
+  "OptionsPageIsStartSpeechClickEnabled":{
+    "message": "通過單擊兩個按鈕開始閱讀（同時按下）"
+  },
+  "OptionsPageIsStopSpeechClickEnabled":{
+    "message": "通過單擊兩個按鈕停止閱讀（同時按下）"
+  },
+  "OptionsPageStartSpeechClickTarget_None":{
+    "message": "不使用"
+  },
+  "OptionsPageStopSpeechClickTarget_None":{
+    "message": "不使用"
+  },
   "DefaultConvertTableURL": {
     "message": ""
   },

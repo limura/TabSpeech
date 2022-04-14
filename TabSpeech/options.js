@@ -143,6 +143,14 @@ function getRegexpConvertTableURL(){
   return document.getElementById("regexpConvertTableURL").value;
 }
 
+function getStartSpeechClickTarget(){
+  return document.getElementById("startSpeechClickTarget").value;
+}
+
+function getStopSpeechClickTarget(){
+  return document.getElementById("stopSpeechClickTarget").value;
+}
+
 function testOnChromeTTS(voices){
   console.log("test on chrome tts", voices);
   let testText = getTestText();
@@ -223,6 +231,10 @@ function saveButtonClicked(voices, savedInformationElement){
   }else{
     chrome.storage.local.remove("voice");
   }
+  if(getStartSpeechClickTarget() == getStopSpeechClickTarget()){
+    document.getElementById("isStartSpeechClickEnabled").value = "0";
+    document.getElementById("isStopSpeechClickEnabled").value = "0";
+  }
   chrome.storage.local.set({
     "pitch": getPitch(),
     "rate": getRate(),
@@ -232,6 +244,8 @@ function saveButtonClicked(voices, savedInformationElement){
     "isAutopagerizeContinueEnabled": getIsAutopagerizeContinueEnabled(),
     "convertTableURL": getConvertTableURL(),
     "regexpConvertTableURL": getRegexpConvertTableURL(),
+    "startSpeechClickTarget": getStartSpeechClickTarget(),
+    "stopSpeechClickTarget": getStopSpeechClickTarget(),
   });
 
   savedInformationElement.innerHTML = "saved!";
@@ -263,6 +277,8 @@ function loadSettings(voices){
     "isAutopagerizeContinueEnabled",
     "convertTableURL",
     "regexpConvertTableURL",
+    "startSpeechClickTarget",
+    "stopSpeechClickTarget",
   ], (localStorage) => {
     if("lang" in localStorage){
       let lang = localStorage.lang;
@@ -317,6 +333,16 @@ function loadSettings(voices){
       document.getElementById("regexpConvertTableURL").value = localStorage.regexpConvertTableURL;
     }else{
       document.getElementById("regexpConvertTableURL").value = defaultRegexpConvertTableURL;
+    }
+    if("startSpeechClickTarget" in localStorage){
+      document.getElementById("startSpeechClickTarget").value = localStorage.startSpeechClickTarget;
+    }else{
+      document.getElementById("startSpeechClickTarget").value = "0";
+    }
+    if("stopSpeechClickTarget" in localStorage){
+      document.getElementById("stopSpeechClickTarget").value = localStorage.stopSpeechClickTarget;
+    }else{
+      document.getElementById("stopSpeechClickTarget").value = "0";
     }
   });
 }
@@ -418,6 +444,23 @@ async function init(){
 document.getElementById('configureShortcuts').onclick = function(e) {
   chrome.tabs.update({ url: 'chrome://extensions/shortcuts' });
 };
+
+document.getElementById("startSpeechClickTarget").addEventListener('change', (ev)=>{
+  const startValue = ev.target.value;
+  const stopValue = getStopSpeechClickTarget();
+  if(startValue != "0" && startValue == stopValue){
+    document.getElementById("stopSpeechClickTarget").value = "0";
+  }
+  console.log("start speech option:", startValue, stopValue, ev);
+});
+document.getElementById("stopSpeechClickTarget").addEventListener('change', (ev)=>{
+  const startValue = getStartSpeechClickTarget();
+  const stopValue = ev.target.value;
+  if(stopValue != "0" && startValue == stopValue){
+    document.getElementById("startSpeechClickTarget").value = "0";
+  }
+  console.log("stop speech option:", startValue, stopValue, ev);
+});
 
 const awaitVoices = new Promise(resolve => speechSynthesis.onvoiceschanged = resolve);
 awaitVoices.then(()=>{init();});

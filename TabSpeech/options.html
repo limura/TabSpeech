@@ -44,6 +44,28 @@ Speaker: <span id="langSelector">
 <label for="isAutopagerizeContinueEnabled" style="cursor: pointer"><input type="checkbox" id="isAutopagerizeContinueEnabled" name="isAutopagerizeContinueEnabled" value="1"/><span data-i18n-text="OptionsPageIsAutopageizeContinueEnabledText">実験的機能：読み終わった時に読み上げられるものが追加されていたら追加分を読み上げる。(Autopagerizeと合わせる場合に嬉しくなるかもしれません。なお、現状この機能は不確定要素が色々ありますので安定動作ができないものと考えて下さい)</span></label>
 </div>
 <div>
+    <span data-i18n-text="OptionsPageIsStartSpeechClickEnabled">
+        2つのボタンクリック(同時押し)で読み上げを開始する
+    </span>
+    <select id="startSpeechClickTarget">
+        <option value="0" data-i18n-text="OptionsPageStartSpeechClickTarget_None">使用しない</option>
+        <option value="3">Mouse1 + Mouse2</option>
+        <option value="5">Mouse1 + Mouse3</option>
+        <option value="6">Mouse2 + Mouse3</option>
+    </select>
+</div>
+<div>
+    <span data-i18n-text="OptionsPageIsStopSpeechClickEnabled">
+        2つのボタンクリック(同時押し)で読み上げを停止する
+    </span>
+    <select id="stopSpeechClickTarget">
+        <option value="0" data-i18n-text="OptionsPageStopSpeechClickTarget_None">使用しない</option>
+        <option value="3">Mouse1 + Mouse2</option>
+        <option value="5">Mouse1 + Mouse3</option>
+        <option value="6">Mouse2 + Mouse3</option>
+    </select>
+</div>
+<div>
 <span data-i18n-text="OptionsPageConvertTableURLLinkText">読み替えデータベース(Wedata の JSON形式へのlink)</span><input type="text" name="convertTableURL" id="convertTableURL" size="80" value=""/>
 </div>
 <div>

@@ -600,10 +600,41 @@ chrome.runtime.onMessage.addListener(
     default:
       break;
     }
+    sendResponse();
   }
 );
 
 window.addEventListener('beforeunload', event => {
   chrome.runtime.sendMessage({"type": "StopChromeTTS"});
 });
+
+var contextMenuBlock = true;
+document.body.addEventListener('mousedown', ev=>{
+  chrome.storage.local.get([
+    "startSpeechClickTarget",
+    "stopSpeechClickTarget",
+  ], (localStorage) => {
+    const startTarget = Number(localStorage["startSpeechClickTarget"]);
+    const stopTarget = Number(localStorage["stopSpeechClickTarget"]);
+    if(ev.buttons == startTarget){
+      StopSpeech();
+      console.log("mousedown", ev);
+      chrome.runtime.sendMessage({"type": "RunStartSpeech"});
+      contextMenuBlock = true;
+    }else if(ev.buttons == stopTarget){
+      chrome.runtime.sendMessage({"type": "RunStopSpeech"});
+    }
+  });
+}, true);
+
+// 右クリックメニューを出さない必要があるなら上書きしちゃいます。
+document.body.addEventListener('contextmenu', ev => {
+  const isBlock = contextMenuBlock;
+  contextMenuBlock = false;
+  if(isBlock){
+    ev.preventDefault();
+  }
+  return isBlock;
+});
+
 //console.log("TabSpeech contentscript loaded.");

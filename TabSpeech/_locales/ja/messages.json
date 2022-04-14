@@ -83,6 +83,18 @@
   "OptionsPageAnnounceMessage": {
     "message": "以下の設定のうち、Speaker の部分を適切な言語と話者に設定の上、「Test」を用いて発話が可能であるかを確認した後、「Save」を押して設定を保存してください。最低限それだけは実行されていませんとTabSpeechは動作しません。"
   },
+  "OptionsPageIsStartSpeechClickEnabled":{
+    "message": "2つのボタンクリック(同時押し)で読み上げを開始する"
+  },
+  "OptionsPageIsStopSpeechClickEnabled":{
+    "message": "2つのボタンクリック(同時押し)で読み上げを停止する"
+  },
+  "OptionsPageStartSpeechClickTarget_None":{
+    "message": "使用しない"
+  },
+  "OptionsPageStopSpeechClickTarget_None":{
+    "message": "使用しない"
+  },
   "DefaultConvertTableURL": {
     "message": "http://wedata.net/databases/TTS%20Convert%20Table%20for%20Apple%20TTS%20Engine%20(jp)/items.json"
   },
