@@ -604,11 +604,22 @@ chrome.runtime.onMessage.addListener(
   }
 );
 
+/*
 window.addEventListener('beforeunload', event => {
   chrome.runtime.sendMessage({"type": "StopChromeTTS"});
 });
+*/
 
-var contextMenuBlock = true;
+function isValidClickTarget(targetNumber){
+  switch(targetNumber){
+    case 3: case 5: case 6:
+      return true;
+    default:
+      return false;
+  }
+}
+
+var contextMenuBlock = false;
 document.body.addEventListener('mousedown', ev=>{
   chrome.storage.local.get([
     "startSpeechClickTarget",
@@ -616,13 +627,14 @@ document.body.addEventListener('mousedown', ev=>{
   ], (localStorage) => {
     const startTarget = Number(localStorage["startSpeechClickTarget"]);
     const stopTarget = Number(localStorage["stopSpeechClickTarget"]);
+    if(!isValidClickTarget(startTarget) || !isValidClickTarget(stopTarget)){return;}
     if(ev.buttons == startTarget){
       StopSpeech();
-      console.log("mousedown", ev);
       chrome.runtime.sendMessage({"type": "RunStartSpeech"});
-      contextMenuBlock = true;
+      contextMenuBlock = ev.buttons & 2;
     }else if(ev.buttons == stopTarget){
       chrome.runtime.sendMessage({"type": "RunStopSpeech"});
+      contextMenuBlock = ev.buttons & 2;
     }
   });
 }, true);
@@ -634,7 +646,6 @@ document.body.addEventListener('contextmenu', ev => {
   if(isBlock){
     ev.preventDefault();
   }
-  return isBlock;
 });
 
 //console.log("TabSpeech contentscript loaded.");
