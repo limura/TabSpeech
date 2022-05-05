@@ -85,7 +85,8 @@ async function UpdateSiteInfoAsync(){
     'siteInfo': siteInfo,
     'siteInfoFetchMillisecond': siteInfoFetchMillisecond,
   });
-  //console.log("loaded.", siteInfoKotosekai, siteInfoAutopagerize, siteInfo);
+  //console.log("SiteInfo loaded.", siteInfoKotosekai, siteInfoAutopagerize, siteInfo);
+  return siteInfo;
 }
 function UpdateSiteInfo(){
   UpdateSiteInfoAsync();
@@ -126,12 +127,13 @@ UpdateConvertTable();
 async function GetSiteInfo(){
   let thisDate = new Date();
   let expireMs = thisDate.getTime() - expireMillisecond;
-  let currentSiteInfo = await storageGetPromiseOne(chrome.storage.local, "siteInfo");
-  chrome.storage.local.get(["siteInfoFetchMillisecond"], ({siteInfoFetchMillisecond}) => {
-    if(siteInfoFetchMillisecond < expireMs){
-      UpdateSiteInfo();
-    }
-  });
+  let storageResult = await storageGetPromise(chrome.storage.local, ["siteInfo", "siteInfoFetchMillisecond"]);
+  var currentSiteInfo = storageResult.siteInfo;
+  if(!Array.isArray(currentSiteInfo) || currentSiteInfo.length <= 0 || ("siteInfoFetchMillisecond" in storageResult && storageResult.siteInfoFetchMillisecond < expireMs)){
+    console.log("force update SiteInfo:", currentSiteInfo);
+    currentSiteInfo = await UpdateSiteInfoAsync();
+  }
+  //console.log("return SiteInfo:", currentSiteInfo);
   return currentSiteInfo;
 }
 
@@ -173,7 +175,22 @@ function StatusEndSpeech(){
   //status = "stop";
 }
 
+async function QueryTabIdToUrl(tabId){
+  return new Promise(resolve => {
+    chrome.tabs.get(tabId, (tab)=>{
+      if(tab){
+        resolve(tab.url);
+      }else{
+        resolve(undefined);
+      }
+    });
+  });
+}
+
 async function RunStartSpeech(tabId, url, kickType){
+  if(typeof(url) == "undefined"){
+    url = await QueryTabIdToUrl(tabId);
+  }
   let siteInfo = await GetSiteInfo();
   let siteInfoArray = SearchSiteInfo(url, siteInfo);
   let convertTables = await GetConvertTables();
