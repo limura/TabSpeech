@@ -612,38 +612,54 @@ window.addEventListener('beforeunload', event => {
 
 function isValidClickTarget(targetNumber){
   switch(targetNumber){
-    case 3: case 5: case 6: case 0:
+    case 3: case 5: case 6:
       return true;
     default:
       return false;
   }
 }
 
-var contextMenuBlock = false;
+var chromeStorageCache = undefined;
+function loadChromeStorageCache(){
+  chrome.storage.local.get([
+    "startSpeechClickTarget",
+    "stopSpeechClickTarget",
+  ], (localStorage) => {
+    chromeStorageCache = localStorage;
+  });
+}
+loadChromeStorageCache();
+
+var mouseDownButtonsCache = 0;
 document.body.addEventListener('mousedown', ev=>{
+  mouseDownButtonsCache = ev.buttons;
   chrome.storage.local.get([
     "startSpeechClickTarget",
     "stopSpeechClickTarget",
   ], (localStorage) => {
     const startTarget = Number(localStorage["startSpeechClickTarget"]);
     const stopTarget = Number(localStorage["stopSpeechClickTarget"]);
-    if(!isValidClickTarget(startTarget) || !isValidClickTarget(stopTarget)){return;}
-    if(ev.buttons == startTarget){
+    if(isValidClickTarget(startTarget) && ev.buttons == startTarget){
       StopSpeech();
       chrome.runtime.sendMessage({"type": "RunStartSpeech"});
-      contextMenuBlock = ev.buttons & 2;
-    }else if(ev.buttons == stopTarget){
+    }else if(isValidClickTarget(stopTarget) && ev.buttons == stopTarget){
       chrome.runtime.sendMessage({"type": "RunStopSpeech"});
-      contextMenuBlock = ev.buttons & 2;
     }
   });
 }, true);
 
 // 右クリックメニューを出さない必要があるなら上書きしちゃいます。
 document.body.addEventListener('contextmenu', ev => {
-  const isBlock = contextMenuBlock;
-  contextMenuBlock = false;
-  if(isBlock){
+  let localStorage = chromeStorageCache;
+  var isHit = 0;
+  const startTarget = Number(localStorage["startSpeechClickTarget"]);
+  const stopTarget = Number(localStorage["stopSpeechClickTarget"]);
+  if(isValidClickTarget(startTarget) && mouseDownButtonsCache == startTarget){
+    isHit = ev.buttons & 2;
+  }else if(isValidClickTarget(stopTarget) && mouseDownButtonsCache == stopTarget){
+    isHit = ev.buttons & 2;
+  }
+  if(isHit){
     ev.preventDefault();
   }
 });
