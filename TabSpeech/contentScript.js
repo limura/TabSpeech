@@ -612,7 +612,7 @@ window.addEventListener('beforeunload', event => {
 
 function isValidClickTarget(targetNumber){
   switch(targetNumber){
-    case 3: case 5: case 6:
+    case 3: case 5: case 6: case 0:
       return true;
     default:
       return false;
