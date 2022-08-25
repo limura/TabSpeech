@@ -629,23 +629,24 @@ function loadChromeStorageCache(){
   });
 }
 loadChromeStorageCache();
+chrome.storage.onChanged.addListener((changes, namespace)=>{
+  for(const [key, {oldValue, newValue}] of Object.entries(changes)){
+    chromeStorageCache[key] = newValue;
+  }
+});
 
 var mouseDownButtonsCache = 0;
 document.body.addEventListener('mousedown', ev=>{
   mouseDownButtonsCache = ev.buttons;
-  chrome.storage.local.get([
-    "startSpeechClickTarget",
-    "stopSpeechClickTarget",
-  ], (localStorage) => {
-    const startTarget = Number(localStorage["startSpeechClickTarget"]);
-    const stopTarget = Number(localStorage["stopSpeechClickTarget"]);
-    if(isValidClickTarget(startTarget) && ev.buttons == startTarget){
-      StopSpeech();
-      chrome.runtime.sendMessage({"type": "RunStartSpeech"});
-    }else if(isValidClickTarget(stopTarget) && ev.buttons == stopTarget){
-      chrome.runtime.sendMessage({"type": "RunStopSpeech"});
-    }
-  });
+  const localStorage = chromeStorageCache;
+  const startTarget = Number(localStorage["startSpeechClickTarget"]);
+  const stopTarget = Number(localStorage["stopSpeechClickTarget"]);
+  if(isValidClickTarget(startTarget) && ev.buttons == startTarget){
+    StopSpeech();
+    chrome.runtime.sendMessage({"type": "RunStartSpeech"});
+  }else if(isValidClickTarget(stopTarget) && ev.buttons == stopTarget){
+    chrome.runtime.sendMessage({"type": "RunStopSpeech"});
+  }
 }, true);
 
 // 右クリックメニューを出さない必要があるなら上書きしちゃいます。
@@ -655,9 +656,9 @@ document.body.addEventListener('contextmenu', ev => {
   const startTarget = Number(localStorage["startSpeechClickTarget"]);
   const stopTarget = Number(localStorage["stopSpeechClickTarget"]);
   if(isValidClickTarget(startTarget) && mouseDownButtonsCache == startTarget){
-    isHit = ev.buttons & 2;
+    isHit = mouseDownButtonsCache & 2;
   }else if(isValidClickTarget(stopTarget) && mouseDownButtonsCache == stopTarget){
-    isHit = ev.buttons & 2;
+    isHit = mouseDownButtonsCache & 2;
   }
   if(isHit){
     ev.preventDefault();
