@@ -163,7 +163,7 @@ function SearchSiteInfo(url, siteInfo){
       }
     }
   });
-  console.log(url, result);
+  //console.log(url, result);
   return result;
 }
 
