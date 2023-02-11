@@ -1,6 +1,8 @@
 var isRepeat = false;
 var isStopped = true;
 let speechSynthesis = window.speechSynthesis;
+var chromeStorageCache = undefined;
+
 function getVoiceList() {
   let voices = speechSynthesis.getVoices();
   return voices;
@@ -131,7 +133,7 @@ function EndSpeechEventHandle(element, event){
 }
 
 function BoundarySpeechEventHandle(element, event){
-  
+
 }
 
 function isNotSpeechElement(element){
@@ -619,7 +621,6 @@ function isValidClickTarget(targetNumber){
   }
 }
 
-var chromeStorageCache = undefined;
 function loadChromeStorageCache(){
   chrome.storage.local.get([
     "startSpeechClickTarget",
