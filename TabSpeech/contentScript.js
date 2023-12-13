@@ -142,6 +142,10 @@ function isNotSpeechElement(element){
     case "SCRIPT":
     case "STYLE":
       return true;
+    case "BLOCKQUOTE":
+      if(element.className == "twitter-tweet"){
+        return true;
+      }
       break;
     default:
       break;
