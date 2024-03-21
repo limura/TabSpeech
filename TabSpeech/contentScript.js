@@ -464,8 +464,16 @@ function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting,
     let displayTextIndex = SpeechTextIndexToDisplayTextIndex(speechTextHints, event.charIndex);
     let elementData = SearchElementFromIndex(elementArray, displayTextIndex + index);
     if(elementData){
-      let endElementData = SearchElementFromIndex(elementArray, displayTextIndex + index + 5);
-      HighlightSpeechSentence(elementData.element, elementData.index, endElementData.element, endElementData.index);
+      let highlightLength = 3;
+      // 別のelementにかぶって良い場合はこうする
+      //let endElementData = SearchElementFromIndex(elementArray, displayTextIndex + index + highlightLength);
+      //let endElementIndex = endElementData.index;
+      // 同じelementだけに絞る場合はこう。
+      let endElementData = elementData;
+      let endElementIndex = (elementData.text.length > elementData.index + highlightLength)
+      ? elementData.index + highlightLength
+      : elementData.text.length;
+      HighlightSpeechSentence(elementData.element, elementData.index, endElementData.element, endElementIndex);
       if(voiceSetting.isScrollEnabled == "true"){ // localStorage には boolean が入らないぽいので文字列で入れている
         ScrollToElement(elementData.element, elementData.index, GetScrollRatio(voiceSetting));
       }
