@@ -107,18 +107,17 @@ function ScrollToIndex(index, margin){
   }
 }
 
-function HighlightSpeechSentence(element, index, length){
+function HighlightSpeechSentence(element, index, endElement, endIndex){
   //element.parentNode.scrollIntoView(true); // TEXT_NODE には scrollIntoView が無いっぽい(´・ω・`)
   let range = new Range();
   //range.selectNodeContents(element); // selectNodeContents() では子要素が無いと駄目
   range.selectNode(element);
-  if(index > 0){
+  if(element && index > 0){
     range.setStart(element, index);
   }
-  //if(length <= 0){
-  //  length = 1;
-  //}
-  //range.setEnd(element, index + length);
+  if(endElement && endIndex > 0){
+    range.setEnd(endElement, endIndex);
+  }
 
   let selection = window.getSelection();
   selection.removeAllRanges();
@@ -465,7 +464,8 @@ function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting,
     let displayTextIndex = SpeechTextIndexToDisplayTextIndex(speechTextHints, event.charIndex);
     let elementData = SearchElementFromIndex(elementArray, displayTextIndex + index);
     if(elementData){
-      HighlightSpeechSentence(elementData.element, elementData.index);
+      let endElementData = SearchElementFromIndex(elementArray, displayTextIndex + index + 5);
+      HighlightSpeechSentence(elementData.element, elementData.index, endElementData.element, endElementData.index);
       if(voiceSetting.isScrollEnabled == "true"){ // localStorage には boolean が入らないぽいので文字列で入れている
         ScrollToElement(elementData.element, elementData.index, GetScrollRatio(voiceSetting));
       }
