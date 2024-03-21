@@ -151,6 +151,61 @@ function getStopSpeechClickTarget(){
   return document.getElementById("stopSpeechClickTarget").value;
 }
 
+class SpeechSynthesisSetting {
+  constructor(lang, identity, pitch, rate, volume){
+    this.lang = lang;
+    this.identity = identity;
+    this.pitch = pitch;
+    this.rate = rate;
+    this.volume = volume;
+  }
+  get serializedData(){
+    return {
+      lang: this.lang,
+      identity: this.identity,
+      pitch: this.pitch,
+      rate: this.rate,
+      volume: this.volume,
+    };
+  }
+  get toJSON(){
+    return JSON.stringify(this.serializedData());
+  }
+  static fromJSON(jsonString){
+    try {
+      const data = JSON.parse(jsonString);
+      return new SpeechSynthesisSetting(data.lang, data.identity, data.pitch, data.rate, data.volume);
+    }catch(e){
+      console.log("SpeechSynthesisSetting JSON.parse error:", e);
+      return undefined;
+    }
+  }
+  static fromVoice(voice, pitch = 1.0, rate = 1.0, volume = 1.0){
+    return new SpeechSynthesisSetting(voice.lang, voice.name, pitch, rate, volume);
+  }
+  apply(utterance){
+    if(this.lang){
+      let voiceArray = getVoiceList();
+      for(voice of voiceArray){
+        if(voice.lang == this.lang && voiceSetting.voice && voice.name == this.voice){
+          utterance.voice = voice;
+          break;
+        }
+      }
+    }
+    if(typeof this.pitch != "undefined"){
+      utterance.pitch = this.pitch;
+    }
+    if(typeof this.rate != "undefined"){
+      utterance.rate = this.rate;
+    }
+    if(typeof this.volume != "undefined"){
+      utterance.volume = this.volume;
+    }
+    return utterance;
+  }
+}
+
 function testOnChromeTTS(voices){
   console.log("test on chrome tts", voices);
   let testText = getTestText();

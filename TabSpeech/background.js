@@ -390,14 +390,91 @@ function RunSpeechOnServiceWorker(tabId, request){
   chrome.tts.speak(speechText, options);
 }
 
+
+// https://developer.chrome.com/docs/extensions/reference/api/offscreen?hl=ja のものをそのまま使います
+let offScreenDocumentCreating; // A global promise to avoid concurrency issues
+async function setupOffscreenDocument(path) {
+  // Check all windows controlled by the service worker to see if one
+  // of them is the offscreen document with the given path
+  const offscreenUrl = chrome.runtime.getURL(path);
+  const existingContexts = await chrome.runtime.getContexts({
+    contextTypes: ['OFFSCREEN_DOCUMENT'],
+    documentUrls: [offscreenUrl]
+  });
+
+  if (existingContexts.length > 0) {
+    return;
+  }
+
+  // create offscreen document
+  if (offScreenDocumentCreating) {
+    await offScreenDocumentCreating;
+  } else {
+    offScreenDocumentCreating = chrome.offscreen.createDocument({
+      url: path,
+      // AUDIO_PLAYBACK だけだと offscreen が開いてから30秒後に offscreen が無反応になる(speechSynthesis は AUDIO_PLAYBACK とみなされていないぽい？)ので、近しい無難な WORKERS を入れて無限に起動し続けるようにします。
+      reasons: ['AUDIO_PLAYBACK', 'WORKERS'],
+      justification: chrome.i18n.getMessage("BackgroundJS_CreateOffscreenReasons"),
+    });
+    await offScreenDocumentCreating;
+    offScreenDocumentCreating = null;
+  }
+}
+
+let speechHtmlPath = "speechSynthesis.html";
+async function SendStartSpeechEvent(tabId, text, voiceSetting) {
+  //console.log("SendStartSpeechEvent:", tabId, text, voiceSetting);
+  await setupOffscreenDocument(speechHtmlPath);
+  chrome.runtime.sendMessage({
+    type: 'StartSpeech',
+    target: 'offscreen',
+    tabId: tabId,
+    speechText: text,
+    voiceSetting: voiceSetting,
+  });
+}
+
+function OnBoundaryEventHandler(request) {
+  //console.log("OnBoundaryEventHandler:", request, request.tabId, request.charIndex, request.event);
+  chrome.tabs.sendMessage(request.tabId, {
+    "type": "SpeechOnServiceWorker_OnBoundary",
+    "event": request.event,
+    "tabId": request.tabId,
+    "charIndex": request.charIndex
+  });
+}
+async function EndSpeechEventHandler(request){
+  //console.log("EndSpeechEventHandler: ", request, request.tabId, request.event);
+  chrome.tabs.sendMessage(request.tabId, {
+    "type": "SpeechOnServiceWorker_OnEnd",
+    "event": request.event,
+  });
+
+  // 読み上げが停止したので offscreen は消しておく
+  const offscreenUrl = chrome.runtime.getURL(speechHtmlPath);
+  const existingContexts = await chrome.runtime.getContexts({
+    contextTypes: ['OFFSCREEN_DOCUMENT'],
+    documentUrls: [offscreenUrl]
+  });
+
+  if (existingContexts.length <= 0) {
+    return;
+  }
+  //console.log("EndSpeechEventHandler: offscreen.closeDocument()");
+  chrome.offscreen.closeDocument();
+}
+
+
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse){
     switch(request.type){
     case "StartSpeech":
       StatusStartSpeech();
+      SendStartSpeechEvent(sender.tab?.id, request['speechText'], request['voiceSetting']);
       break;
     case "EndSpeech":
       StatusEndSpeech();
+      EndSpeechEventHandler(request);
       break;
 
     case "RunStartSpeech":
@@ -425,6 +502,9 @@ chrome.runtime.onMessage.addListener(
           chrome.tts.stop();
         }
       });
+      break;
+    case "OnBoundary":
+      OnBoundaryEventHandler(request);
       break;
     default:
       break;

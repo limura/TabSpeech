@@ -106,5 +106,8 @@
   },
   "RightClickMenu_StartSpeechHere_Title": {
     "message": "Start Speech"
+  },
+  "BackgroundJS_CreateOffscreenReasons": {
+    "message": "Used for making speeches."
   }
 }

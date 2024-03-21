@@ -8,6 +8,14 @@ function getVoiceList() {
   return voices;
 }
 
+function StartSpeech(text, voiceSetting) {
+  chrome.runtime.sendMessage({
+    type: 'StartSpeech',
+    speechText: text,
+    voiceSetting: voiceSetting,
+  });
+}
+
 function StopSpeech(){
   speechSynthesis.cancel();
 }
@@ -118,7 +126,7 @@ function HighlightSpeechSentence(element, index, length){
 }
 
 function RemoveHighlightSpeechSentence(){
-  chrome.runtime.sendMessage({"type": "EndSpeech"});
+  //chrome.runtime.sendMessage({"type": "EndSpeech"});
   let selection = window.getSelection();
 }
 
@@ -128,7 +136,7 @@ function StartSpeechEventHandle(element, event){
 }
 
 function EndSpeechEventHandle(element, event){
-  chrome.runtime.sendMessage({"type": "EndSpeech"});
+  //chrome.runtime.sendMessage({"type": "EndSpeech"});
   RemoveHighlightSpeechSentence();
 }
 
@@ -448,7 +456,7 @@ function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting,
   let speechTextHints = GenerateSpeechTextHints(text, convertDic);
   var speechText = SpeechTextHintToSpeechText(speechTextHints, 0);
   if(maxLength > 0){
-    speechText = speechText.substr(0, maxLength);
+    speechText = speechText.substring(0, maxLength);
   }
   let utterance = new SpeechSynthesisUtterance(speechText);
   speechEventHandlerHolder.onboundary =
@@ -467,13 +475,13 @@ function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting,
   speechEventHandlerHolder.onstart =
   utterance.onstart = function(event){
     //console.log("SpeechSynthesisUtterance Event onStart", event);
-    chrome.runtime.sendMessage({"type": "StartSpeech"});
+    //chrome.runtime.sendMessage({"type": "StartSpeech"});
   };
   speechEventHandlerHolder.onend =
   utterance.onend = function(event){
     //console.log("SpeechSynthesisUtterance Event onEnd", event);
     RemoveHighlightSpeechSentence();
-    chrome.runtime.sendMessage({"type": "EndSpeech"});
+    //chrome.runtime.sendMessage({"type": "EndSpeech"});
 
     let isAutopagerizeContinueEnabled = voiceSetting["isAutopagerizeContinueEnabled"];
     if(!isStopped && isAutopagerizeContinueEnabled == "true"){
@@ -505,7 +513,8 @@ function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting,
       voiceSetting: voiceSetting,
     });
   }else{
-    speechSynthesis.speak(utterance);
+    //speechSynthesis.speak(utterance);
+    StartSpeech(utterance.text, voiceSetting);
   }
   return true;
 }
@@ -595,6 +604,8 @@ chrome.runtime.onMessage.addListener(
       ResumeSpeech();
       break;
     case "SpeechOnServiceWorker_OnBoundary":
+      let event = message.event; // 何故か message に入っているはずの charIndex が消えているので別口で送っているもので上書きします。
+      event.charIndex = message.charIndex
       SpeechOnBoundary(message.event);
       break;
     case "SpeechOnServiceWorker_OnStart":

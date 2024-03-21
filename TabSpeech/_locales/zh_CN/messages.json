@@ -106,5 +106,8 @@
   },
   "RightClickMenu_StartSpeechHere_Title": {
     "message": "开始话语"
+  },
+  "BackgroundJS_CreateOffscreenReasons": {
+    "message": "用于发表演讲。"
   }
 }

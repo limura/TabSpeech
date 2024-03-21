@@ -106,5 +106,8 @@
   },
   "RightClickMenu_StartSpeechHere_Title": {
     "message": "発話を開始"
+  },
+  "BackgroundJS_CreateOffscreenReasons": {
+    "message": "発話をするために利用します。"
   }
 }

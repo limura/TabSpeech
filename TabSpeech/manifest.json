@@ -24,7 +24,7 @@
     "page": "options.html",
     "open_in_tab": true
   },
-  "permissions": ["activeTab", "contextMenus", "storage", "tts", "tabs"],
+  "permissions": ["activeTab", "contextMenus", "storage", "tts", "tabs", "offscreen"],
   "commands": {
     "start-speech": {
       "description": "__MSG_KeyboardShortcutNameStartSpeech__"
