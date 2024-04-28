@@ -108,6 +108,7 @@ function ScrollToIndex(index, margin){
 }
 
 function HighlightSpeechSentence(element, index, endElement, endIndex){
+  if(!document.contains(element)) { return; }
   //element.parentNode.scrollIntoView(true); // TEXT_NODE には scrollIntoView が無いっぽい(´・ω・`)
   let range = new Range();
   //range.selectNodeContents(element); // selectNodeContents() では子要素が無いと駄目
@@ -115,7 +116,7 @@ function HighlightSpeechSentence(element, index, endElement, endIndex){
   if(element && index > 0){
     range.setStart(element, index);
   }
-  if(endElement && endIndex > 0){
+  if(endElement && endIndex > 0 && document.contains(endElement)){
     range.setEnd(endElement, endIndex);
   }
 
@@ -686,6 +687,12 @@ document.body.addEventListener('contextmenu', ev => {
   }
   if(isHit){
     ev.preventDefault();
+  }
+});
+
+window.addEventListener("beforeunload", function() {
+  if (chrome && chrome.runtime && chrome.runtime.sendMessage) {
+    chrome.runtime.sendMessage({"type": "onRemoved"}, ()=>{});
   }
 });
 

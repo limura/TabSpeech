@@ -31,6 +31,14 @@ function StopSpeech() {
     speechSynthesis.cancel();
 }
 
+var currentSpeechTabId = undefined;
+function OnRemovedEventHandler(tabId) {
+    if(currentSpeechTabId == tabId) {
+        StopSpeech();
+        currentSpeechTabId = undefined;
+    }
+}
+
 function StartSpeech(tabId, speechText, voiceSetting){
     StopSpeech();
     let utterance = new SpeechSynthesisUtterance(speechText);
@@ -48,6 +56,7 @@ function StartSpeech(tabId, speechText, voiceSetting){
     utterance.onpause = function(event){console.log("SpeechSynthesisUtterance Event onPause", event);};
     utterance.onresume = function(event){console.log("SpeechSynthesisUtterance Event onResume", event);};
     ApplyVoiceSetting(utterance, voiceSetting);
+    currentSpeechTabId = tabId;
     speechSynthesis.speak(utterance);
 }
 
@@ -60,8 +69,12 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
         case "StopSpeech":
             StopSpeech();
             break;
+        case "TabClosed":
+            OnRemovedEventHandler(request.tabId);
+            break;
         default:
             break;
     }
+    sendResponse();
 });
   

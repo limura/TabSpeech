@@ -4,6 +4,28 @@ let autopagerizeSiteInfoURL = "http://wedata.net/databases/AutoPagerize/items.js
 let defaultConvertTableURL = "http://wedata.net/databases/TTS%20Convert%20Table%20for%20Apple%20TTS%20Engine%20(jp)/items.json";
 let defaultRegexpConvertTableURL = "http://wedata.net/databases/TTS%20Regulaer%20Expression%20Convert%20Table%20for%20Apple%20TTS%20Engine%20(jp)/items.json";
 
+function chromeRuntimeSendMessageWrap(opt){
+  chrome.runtime.sendMessage(opt, (r) => {
+    if(r){
+      r();
+    }
+  });
+}
+async function chromeTabsSendMessageWrap(tabId, opt){
+  chrome.tabs.get(tabId).then((tabInfo)=>{
+    let gotTabId = tabInfo?.id;
+    if(gotTabId){
+      chrome.tabs.sendMessage(gotTabId, opt, (r) => {
+        if(r){
+          r();
+        }
+      });
+    }
+  }).catch(()=>{
+    // nothing to do.
+  })
+}
+
 function storageGetPromise(storage, targetArray){
   return new Promise(resolve => {
     storage.get(targetArray, function(items){
@@ -47,7 +69,7 @@ function FetchJson(url){
     fetch(url)
     .then(function(response){
       resolve(response.json());
-    });
+    }).catch((err)=>{resolve();});
   });
 }
 
@@ -183,7 +205,7 @@ async function QueryTabIdToUrl(tabId){
       }else{
         resolve(undefined);
       }
-    });
+    }).catch((e)=> { /* nothing to do */ });
   });
 }
 
@@ -199,7 +221,7 @@ async function RunStartSpeech(tabId, url, kickType){
     , "isScrollEnabled", "isAutopagerizeContinueEnabled", "scrollPositionRatio"
     , "extensionId"
   ], (localStorage) => {
-    chrome.tabs.sendMessage(tabId, {
+    chromeTabsSendMessageWrap(tabId, {
       "type": kickType,
       "SiteInfoArray": siteInfoArray,
       "lang": localStorage["lang"],
@@ -219,16 +241,16 @@ async function RunStartSpeech(tabId, url, kickType){
 }
 
 function RunStopSpeech(tabId){
-  chrome.tabs.sendMessage(tabId, {"type": "StopSpeech"});
+  chromeTabsSendMessageWrap(tabId, {"type": "StopSpeech"});
   StatusEndSpeech();
 }
 
 function RunPauseSpeech(tabId){
-  chrome.tabs.sendMessage(tabId, {"type": "PauseSpeech"});
+  chromeTabsSendMessageWrap(tabId, {"type": "PauseSpeech"});
 }
 
 function RunResumeSpeech(tabId){
-  chrome.tabs.sendMessage(tabId, {"type": "ResumeSpeech"});
+  chromeTabsSendMessageWrap(tabId, {"type": "ResumeSpeech"});
 }
 
 function KickSpeech(tabId, url){
@@ -248,9 +270,19 @@ function enableActionButton(tabId){
 }
 
 chrome.tabs.onUpdated.addListener(function(tabId){
-  chrome.tabs.get(tabId, function(tab){
-    enableActionButton(tabId);
-  });
+  chrome.tabs.get(tabId).then((tabInfo)=>{
+    let gotTabId = tabInfo?.id;
+    if(gotTabId){
+      enableActionButton(gotTabId);
+    }
+  }).catch(()=>{
+    // nothing to do!
+  })
+  /*chrome.tabs.get(tabId, (tabInfo)=>{
+    if(tabInfo?.id){
+      enableActionButton(tabId);
+    }
+  });*/
 });
 
 function RunInCurrentTab(func){
@@ -324,61 +356,61 @@ function RunSpeechOnServiceWorker(tabId, request){
     //console.log("chrome.tts onevent", event);
     switch(event.type) {
       case "start":
-        chrome.tabs.sendMessage(tabId, {
+        chromeTabsSendMessageWrap(tabId, {
           type: "SpeechOnServiceWorker_OnStart",
           event: event,
         });
         break;
       case "end":
-        chrome.tabs.sendMessage(tabId, {
+        chromeTabsSendMessageWrap(tabId, {
           type: "SpeechOnServiceWorker_OnEnd",
           event: event,
         });
         break;
       case "word":
-        chrome.tabs.sendMessage(tabId, {
+        chromeTabsSendMessageWrap(tabId, {
           type: "SpeechOnServiceWorker_OnBoundary",
           event: event,
         });
         break;
       case "sentence":
-        chrome.tabs.sendMessage(tabId, {
+        chromeTabsSendMessageWrap(tabId, {
           type: "SpeechOnServiceWorker_OnBoundary",
           event: event,
         });
         break;
       case "marker":
-        chrome.tabs.sendMessage(tabId, {
+        chromeTabsSendMessageWrap(tabId, {
           type: "SpeechOnServiceWorker_OnBoundary",
           event: event,
         });
         break;
       case "interrupted":
-        chrome.tabs.sendMessage(tabId, {
+        chromeTabsSendMessageWrap(tabId, {
           type: "SpeechOnServiceWorker_OnEnd",
           event: event,
         });
         break;
       case "cancelled":
-        chrome.tabs.sendMessage(tabId, {
+        chromeTabsSendMessageWrap(tabId, {
           type: "SpeechOnServiceWorker_OnEnd",
           event: event,
         });
         break;
       case "error":
-        chrome.tabs.sendMessage(tabId, {
+        chromeTabsSendMessageWrap(tabId, {
           type: "SpeechOnServiceWorker_OnEnd",
           event: event,
         });
         break;
       case "pause":
-        chrome.tabs.sendMessage(tabId, {
+        chromeTabsSendMessageWrap(tabId, {
           type: "SpeechOnServiceWorker_OnEnd",
           event: event,
         });
         break;
       case "resume":
-        chrome.tabs.sendMessage(tabId, {
+        chromeTabsSendMessageWrap(tabId, {
           type: "SpeechOnServiceWorker_OnStart",
           event: event,
         });
@@ -425,7 +457,7 @@ let speechHtmlPath = "speechSynthesis.html";
 async function SendStartSpeechEvent(tabId, text, voiceSetting) {
   //console.log("SendStartSpeechEvent:", tabId, text, voiceSetting);
   await setupOffscreenDocument(speechHtmlPath);
-  chrome.runtime.sendMessage({
+  chromeRuntimeSendMessageWrap({
     type: 'StartSpeech',
     target: 'offscreen',
     tabId: tabId,
@@ -436,7 +468,7 @@ async function SendStartSpeechEvent(tabId, text, voiceSetting) {
 
 function OnBoundaryEventHandler(request) {
   //console.log("OnBoundaryEventHandler:", request, request.tabId, request.charIndex, request.event);
-  chrome.tabs.sendMessage(request.tabId, {
+  chromeTabsSendMessageWrap(request.tabId, {
     "type": "SpeechOnServiceWorker_OnBoundary",
     "event": request.event,
     "tabId": request.tabId,
@@ -445,7 +477,7 @@ function OnBoundaryEventHandler(request) {
 }
 async function EndSpeechEventHandler(request){
   //console.log("EndSpeechEventHandler: ", request, request.tabId, request.event);
-  chrome.tabs.sendMessage(request.tabId, {
+  chromeTabsSendMessageWrap(request.tabId, {
     "type": "SpeechOnServiceWorker_OnEnd",
     "event": request.event,
   });
@@ -462,6 +494,15 @@ async function EndSpeechEventHandler(request){
   }
   //console.log("EndSpeechEventHandler: offscreen.closeDocument()");
   chrome.offscreen.closeDocument();
+}
+
+async function OnRemovedEventHandler(tabId) {
+  await setupOffscreenDocument(speechHtmlPath);
+  chromeRuntimeSendMessageWrap({
+    type: 'TabClosed',
+    target: 'offscreen',
+    tabId: tabId,
+  });
 }
 
 
@@ -506,6 +547,9 @@ chrome.runtime.onMessage.addListener(
     case "OnBoundary":
       OnBoundaryEventHandler(request);
       break;
+    case "onRemoved":
+      //console.log("onRemoved:", sender.tab.id);
+      OnRemovedEventHandler(sender.tab.id);
     default:
       break;
     }
