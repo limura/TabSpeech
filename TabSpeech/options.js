@@ -287,8 +287,8 @@ function saveButtonClicked(voices, savedInformationElement){
     chrome.storage.local.remove("voice");
   }
   if(getStartSpeechClickTarget() == getStopSpeechClickTarget()){
-    document.getElementById("isStartSpeechClickEnabled").value = "0";
-    document.getElementById("isStopSpeechClickEnabled").value = "0";
+    document.getElementById("startSpeechClickTarget").value = "0";
+    document.getElementById("stopSpeechClickTarget").value = "0";
   }
   chrome.storage.local.set({
     "pitch": getPitch(),
