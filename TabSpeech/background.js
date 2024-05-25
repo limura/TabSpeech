@@ -574,26 +574,26 @@ chrome.commands.onCommand.addListener(function(command) {
   }
 });
 
+const rightClickMenuId_OnlySelection = "TabSpeech_ContextMenu_StartSpeechOnlySelected";
+const rightClickMenuId_StartSpeech = "TabSpeech_ContextMenu_StartSpeech";
 
-// service worker が起動して一回だけ動かくやーつ
+chrome.contextMenus.onClicked.addListener((info,tab) => {
+  console.log("chrome.contextMenus.onClicked", info, tab, "chrome.i18n.getMessage", chrome.i18n.getMessage);
+  switch(info.menuItemId){
+    case rightClickMenuId_OnlySelection:
+      StartSpeechOnlySelected();
+      break;
+    case rightClickMenuId_StartSpeech:
+      StartSpeech();
+      break;
+    default:
+      console.log("unknown menuItemId", info.menuItemId, info);
+      break;
+  }
+});
+
+// service worker が起動して一回だけ動くやーつ
 self.addEventListener('install', ev => {
-  const rightClickMenuId_OnlySelection = "TabSpeech_ContextMenu_StartSpeechOnlySelected";
-  const rightClickMenuId_StartSpeech = "TabSpeech_ContextMenu_StartSpeech";
-
-  chrome.contextMenus.onClicked.addListener((info,tab) => {
-    console.log("chrome.contextMenus.onClicked", info, tab, "chrome.i18n.getMessage", chrome.i18n.getMessage);
-    switch(info.menuItemId){
-      case rightClickMenuId_OnlySelection:
-        StartSpeechOnlySelected();
-        break;
-      case rightClickMenuId_StartSpeech:
-        StartSpeech();
-        break;
-      default:
-        console.log("unknown menuItemId", info.menuItemId, info);
-        break;
-    }
-  });
 
   chrome.storage.local.get(["migrateFromLocalStorage"], (data) => {
     if(!("migrateFromLocalStorage" in data)) {
