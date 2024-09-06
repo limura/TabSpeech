@@ -94,10 +94,10 @@ async function FetchSiteInfo(url) {
       const headers = lines[0].split('\t');
       data = lines.slice(1).map(line => {
         const values = line.split('\t');
-        return headers.reduce((obj, header, index) => {
+        return {data: headers.reduce((obj, header, index) => {
           obj[header] = values[index];
           return obj;
-        }, {});
+        }, {})};
       });
     } else {
       console.error('Unsupported content type', contentType);
