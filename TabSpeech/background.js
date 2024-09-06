@@ -1,5 +1,6 @@
 let expireMillisecond = 100 * 60 * 60 * 1;
 let kotosekaiSiteInfoURL = "http://wedata.net/databases/%E3%81%93%E3%81%A8%E3%81%9B%E3%81%8B%E3%81%84Web%E3%83%9A%E3%83%BC%E3%82%B8%E8%AA%AD%E3%81%BF%E8%BE%BC%E3%81%BF%E7%94%A8%E6%83%85%E5%A0%B1/items.json";
+let kotosekaiSiteInfoTSVURL = "https://docs.google.com/spreadsheets/d/1t2wFx8psbc4EZxlacCas6lknO1S_PW6wsR9Qxq7HEnM/pub?gid=0&single=true&output=tsv";
 let autopagerizeSiteInfoURL = "http://wedata.net/databases/AutoPagerize/items.json";
 let defaultConvertTableURL = "http://wedata.net/databases/TTS%20Convert%20Table%20for%20Apple%20TTS%20Engine%20(jp)/items.json";
 let defaultRegexpConvertTableURL = "http://wedata.net/databases/TTS%20Regulaer%20Expression%20Convert%20Table%20for%20Apple%20TTS%20Engine%20(jp)/items.json";
@@ -68,21 +69,47 @@ function FetchJson(url){
   return new Promise(resolve => {
     fetch(url)
     .then(function(response){
-      resolve(response.json());
+      try {
+        let json = JSON.parse(response.text);
+        resolve(json);
+      }catch{
+        console.log("FetchJson JSON.parse() got error. skip.", url);
+        resolve();
+      }
     }).catch((err)=>{resolve();});
   });
 }
 
-function FetchSiteInfo(url){
-  return new Promise(resolve => {
-    fetch(url)
-    .then(function(response){
-      return response.json();
-    }).then(function(json){
-      json.sort(siteInfoSortFunc);
-      resolve(json);
-    }).catch(function(err){console.log("FetchSiteInfo error", err);});
-  });
+async function FetchSiteInfo(url) {
+  try {
+    const response = await fetch(url);
+    const contentType = response.headers.get('content-type');
+
+    let data;
+    if (contentType && contentType.includes('json')) {
+      data = await response.json();
+    } else if (contentType && contentType.includes('text/tab-separated-values')) {
+      const text = await response.text();
+      const lines = text.split('\n');
+      const headers = lines[0].split('\t');
+      data = lines.slice(1).map(line => {
+        const values = line.split('\t');
+        return headers.reduce((obj, header, index) => {
+          obj[header] = values[index];
+          return obj;
+        }, {});
+      });
+    } else {
+      console.error('Unsupported content type', contentType);
+      return;
+    }
+
+    data.sort(siteInfoSortFunc);
+    return data;
+  } catch (err) {
+    console.error('fetchSiteInfo error', err);
+    //throw err;
+  }
 }
 
 function GetFromStorage(key){
@@ -98,7 +125,7 @@ function GetFromStorage(key){
 }
 
 async function UpdateSiteInfoAsync(){
-  let siteInfoKotosekai = await FetchSiteInfo(kotosekaiSiteInfoURL);
+  let siteInfoKotosekai = await FetchSiteInfo(kotosekaiSiteInfoTSVURL);
   let siteInfoAutopagerize = await FetchSiteInfo(autopagerizeSiteInfoURL);
   siteInfoFetchMillisecond = (new Date()).getTime();
   var siteInfo = [].concat(siteInfoKotosekai);
