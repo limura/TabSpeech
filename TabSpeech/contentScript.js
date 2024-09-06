@@ -117,7 +117,12 @@ function HighlightSpeechSentence(element, index, endElement, endIndex){
     range.setStart(element, index);
   }
   if(endElement && endIndex > 0 && document.contains(endElement)){
-    range.setEnd(endElement, endIndex);
+    try {
+      // TODO: 怪しく末尾に「。」を追加しているので setEnd() については範囲外になる可能性があるので例外を握りつぶしています
+      range.setEnd(endElement, endIndex);
+    }catch{
+      //
+    }
   }
 
   let selection = window.getSelection();
@@ -186,13 +191,58 @@ function extractElement(element){
   return elementArray;
 }
 
+function getRect(element) {
+  if(element === undefined) { return undefined; }
+  let range = new Range();
+  range.selectNode(element);
+  return range.getBoundingClientRect();
+}
+
+function getPunctuation() {
+  const lang = document.documentElement.lang;
+  // 言語コードから主要な言語部分のみ抽出
+  const primaryLang = lang.split('-')[0];
+
+  switch (primaryLang) {
+    case 'ja':
+      return '。';
+    case 'en':
+      return '.';
+    case 'ko':
+      return '。'; // 韓国語でも「。」がよく使われます
+    case 'zh':
+      return '。'; // 中国語は簡体字と繁体字どちらも「。」にします
+    default:
+      return '.';
+  }
+}
+
 function extractElementForPageElementArray(pageElementArray){
   var elementArray = [];
   for(var i = 0; i < pageElementArray.snapshotLength; i++){
     let element = pageElementArray.snapshotItem(i);
     elementArray = elementArray.concat(extractElement(element));
   }
-  return elementArray;
+
+  // 読み上げないような文字列のElementについては弾きます
+  let filterdElementArray = elementArray.filter((obj)=> !/^[\s\n\r]+$/.test(obj.text));
+
+  // 次の読み上げ対象のelementが縦方向で下にあるなら、文末に「。」に当たる文字列を追加します。
+  let panctuation = getPunctuation();
+  for (let i = 0; i < filterdElementArray.length - 1; i++) {
+    let currentElement = filterdElementArray[i].element;
+    let nextElement = filterdElementArray[i+1].element;
+    let currentRect = getRect(currentElement);
+    let nextRect = getRect(nextElement);
+    let currentBottom = currentRect.top + currentRect.height;
+    let nextTop = nextRect.top;
+    let threshold = 5;
+    if (currentBottom < nextTop - threshold) {
+      //console.log("add panctuaton:", filterdElementArray[i].element, panctuation, nextTop, currentBottom - threshold, currentRect, nextRect);
+      filterdElementArray[i].text += panctuation;
+    }
+  }
+  return filterdElementArray;
 }
 
 // [{"element":, "text":}, ...] の配列の text の文字を index として、
@@ -258,7 +308,6 @@ function SplitElementFromSelection(elementArray, range){
 function GenerateWholeText(elementArray, index){
   var text = "";
   elementArray.forEach(function(data){
-    //console.log("text += ", data["text"], index);
     text += data["text"];
   });
   return text.slice(index);
