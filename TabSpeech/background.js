@@ -69,11 +69,12 @@ function FetchJson(url){
   return new Promise(resolve => {
     fetch(url)
     .then(function(response){
+        return response.text();
+    }).then(function(text){
       try {
-        let json = JSON.parse(response.text);
+        let json = JSON.parse(text);
         resolve(json);
       }catch{
-        console.log("FetchJson JSON.parse() got error. skip.", url);
         resolve();
       }
     }).catch((err)=>{resolve();});
@@ -84,12 +85,17 @@ async function FetchSiteInfo(url) {
   try {
     const response = await fetch(url);
     const contentType = response.headers.get('content-type');
+    const text = await response.text();
 
     let data;
     if (contentType && contentType.includes('json')) {
-      data = await response.json();
+      try {
+        data = JSON.parse(text);
+      }catch{
+        console.log("FetchSiteInfo JSON.parse() got error. skip.", url, text);
+        data = [];
+      }
     } else if (contentType && contentType.includes('text/tab-separated-values')) {
-      const text = await response.text();
       const lines = text.split('\n');
       const headers = lines[0].split('\t');
       data = lines.slice(1).map(line => {
