@@ -542,16 +542,16 @@ function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting,
     RemoveHighlightSpeechSentence();
     //chrome.runtime.sendMessage({"type": "EndSpeech"});
 
+    if(checkRepeat(elementArray, nextLink, index, voiceSetting)){
+      return;
+    }
+
     let isAutopagerizeContinueEnabled = voiceSetting["isAutopagerizeContinueEnabled"];
     if(!isStopped && isAutopagerizeContinueEnabled == "true"){
       let result = CheckAutopagerizedContentAlive(SiteInfo, wholeText);
       if(result.hasNewContent){
         SpeechWithPageElementArray(result.elementArray, nextLink, result.index, voiceSetting, SiteInfo);
       }
-      return;
-    }
-
-    if(checkRepeat(elementArray, nextLink, index, voiceSetting)){
       return;
     }
   };
