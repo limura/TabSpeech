@@ -436,6 +436,7 @@ function CheckAutopagerizedContentAlive(SiteInfo, displayText){
 }
 
 function WedataConvertTableToLocalConvertDic(json){
+  if (Array.isArray(json) == true) { return []; }
   var result = [];
   for(var i = 0; i < json.length; i++){
     let column = json[i];
