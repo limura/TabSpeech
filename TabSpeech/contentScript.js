@@ -269,6 +269,8 @@ function SplitElementFromSelection(elementArray, range){
   var resultArray = [];
   var isHit = false;
   var index = 0;
+  var prevSTART_TO_START = -2;
+  var prevSTART_TO_END = -2;
   for(var i = 0; i < elementArray.length; i++){
     let data = elementArray[i];
     let element = data["element"];
@@ -284,8 +286,13 @@ function SplitElementFromSelection(elementArray, range){
       continue;
     }
     //console.log("compare", elementRange.compareBoundaryPoints(Range.START_TO_START, range), elementRange.compareBoundaryPoints(Range.START_TO_END, range));
-    if(elementRange.compareBoundaryPoints(Range.START_TO_START, range) <= 0 &&
-      elementRange.compareBoundaryPoints(Range.START_TO_END, range) >= 0){
+    let START_TO_START = elementRange.compareBoundaryPoints(Range.START_TO_START, range)
+    let START_TO_END = elementRange.compareBoundaryPoints(Range.START_TO_END, range)
+    // elementRange の中に range の先頭部分が入っている場合(START_TO_START <= 0 && START_TO_END >= 0)
+    // または、前回は elementRange の末尾が range の先頭部分より前(prevSTART_TO_START == -1 && prevSTART_TO_END == -1)で、かつ
+    // 今回 elementRange の末尾が range の先頭部分より後(START_TO_START == 1 && START_TO_END == 1)であれば、
+    // ここで選択範囲を横切ったと判定する。
+    if((START_TO_START <= 0 && START_TO_END >= 0) || (prevSTART_TO_START == -1 && prevSTART_TO_END == -1 && START_TO_START == 1 && START_TO_END == 1)){
       isHit = true;
       resultArray.push(data);
 
@@ -296,6 +303,8 @@ function SplitElementFromSelection(elementArray, range){
         index = 0;
       }
     }
+    prevSTART_TO_START = elementRange.compareBoundaryPoints(Range.START_TO_START, range)
+    prevSTART_TO_END = elementRange.compareBoundaryPoints(Range.START_TO_END, range)
   }
   if(resultArray.length <= 0){
     return undefined;
