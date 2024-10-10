@@ -217,6 +217,18 @@ function getPunctuation() {
   }
 }
 
+function getLineHeight(node) {
+  try {
+    return getComputedStyle(node).lineHeight;
+  }catch{
+    let parent = node.parentNode;
+    if(parent) {
+      return getLineHeight(parent);
+    }
+  }
+  return undefined;
+}
+
 function extractElementForPageElementArray(pageElementArray){
   var elementArray = [];
   for(var i = 0; i < pageElementArray.snapshotLength; i++){
@@ -236,7 +248,11 @@ function extractElementForPageElementArray(pageElementArray){
     let nextRect = getRect(nextElement);
     let currentBottom = currentRect.top + currentRect.height;
     let nextTop = nextRect.top;
-    let threshold = 5;
+    let currentElementLineHeight = getLineHeight(currentElement);
+    var threshold = 5;
+    if (currentElementLineHeight) {
+      threshold += currentElementLineHeight;
+    }
     if (currentBottom < nextTop - threshold) {
       //console.log("add panctuaton:", filterdElementArray[i].element, panctuation, nextTop, currentBottom - threshold, currentRect, nextRect);
       filterdElementArray[i].text += panctuation;
