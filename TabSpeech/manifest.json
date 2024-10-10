@@ -2,7 +2,7 @@
   "default_locale": "en",
   "name": "TabSpeech",
   "description": "__MSG_appDescription__",
-  "version": "2.0.7",
+  "version": "2.0.8",
   "background": { "service_worker": "background.js" },
   "icons": {
     "16": "icon/TabSpeechIcon16.png",
