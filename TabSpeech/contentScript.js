@@ -153,6 +153,7 @@ function isNotSpeechElement(element){
   if(element instanceof HTMLElement){
     switch(element.tagName){
     case "SCRIPT":
+    case "NOSCRIPT":
     case "STYLE":
       return true;
     case "BLOCKQUOTE":
