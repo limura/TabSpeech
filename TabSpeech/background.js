@@ -96,7 +96,7 @@ async function FetchSiteInfo(url) {
         data = [];
       }
     } else if (contentType && contentType.includes('text/tab-separated-values')) {
-      const lines = text.split('\n');
+      const lines = text.replace(/\r\n/g, "\n").split('\n');
       const headers = lines[0].split('\t');
       data = lines.slice(1).map(line => {
         const values = line.split('\t');
