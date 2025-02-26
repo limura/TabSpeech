@@ -161,6 +161,12 @@ function isNotSpeechElement(element){
         return true;
       }
       break;
+    case "SPAN":
+      if(element.class == "katex-mathml"){
+        console.log("katex", element);
+        return true;
+      }
+      break;
     default:
       break;
     }
