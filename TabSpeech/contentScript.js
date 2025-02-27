@@ -9,6 +9,7 @@ function getVoiceList() {
 }
 
 function StartSpeech(text, voiceSetting) {
+  autoScrollActive = true;
   chrome.runtime.sendMessage({
     type: 'StartSpeech',
     speechText: text,
@@ -82,7 +83,52 @@ function GetNextLink(SiteInfo){
   return undefined;
 }
 
+let autoScrollActive = 1;
+let autoScrollTimeout = null;
+const PAUSE_DURATION = 4000; // 4秒間スクロールがない場合は自動スクロールを停止する
+
+function detectUserScroll() {
+  // 自動スクロールを一時停止
+  autoScrollActive = false;
+
+  // 既存のタイムアウトがあればクリア
+  if (autoScrollTimeout) {
+    clearTimeout(autoScrollTimeout);
+  }
+
+  // 一定時間後に自動スクロールを再開
+  autoScrollTimeout = setTimeout(() => {
+    autoScrollActive = true;
+  }, PAUSE_DURATION);
+}
+
+// 各種スクロールイベントのリスナーを設定
+function setupScrollDetection() {
+  // マウスホイールによるスクロールを検知
+  document.addEventListener('wheel', (event) => {
+    detectUserScroll();
+  });
+
+  // キーボードによるスクロールを検知（上下キー）
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown' ||
+        event.key === 'PageUp' || event.key === 'PageDown' ||
+        event.key === 'Home' || event.key === 'End' ||
+        event.key === ' ') {
+      detectUserScroll();
+    }
+  });
+}
+setupScrollDetection();
+
 function ScrollToElement(element, index, margin) {
+  if (!autoScrollActive) {
+    const localStorage = chromeStorageCache;
+    const isDelayAutoScrollEnabled = localStorage["isDelayAutoScrollEnabled"] != "false";
+    if (isDelayAutoScrollEnabled) {
+      return;
+    }
+  }
   let range = new Range();
   range.selectNode(element);
   if(index > 0){
@@ -731,6 +777,7 @@ function loadChromeStorageCache(){
   chrome.storage.local.get([
     "startSpeechClickTarget",
     "stopSpeechClickTarget",
+    "isDelayAutoScrollEnabled"
   ], (localStorage) => {
     chromeStorageCache = localStorage;
   });

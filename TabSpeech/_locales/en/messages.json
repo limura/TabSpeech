@@ -59,6 +59,9 @@
   "OptionsPageIsAutopageizeContinueEnabledText": {
     "message": "Experimental feature: If what is read aloud when it is finished reading, it reads out the added content. (You may be glad when you match it with Autopagerize. Please note that there are various uncertainties in this function at present, so it can not be stable operation)"
   },
+  "OptionsPageIsDelayAutoScrollEnabledText": {
+    "message": "Temporarily stop auto-scrolling with mouse wheel, keyboard up/down/left/right keys, etc."
+  },
   "OptionsPageConvertTableURLLinkText": {
     "message": "Reading database (link to Wedata JSON format)"
   },

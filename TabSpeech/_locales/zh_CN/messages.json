@@ -59,6 +59,9 @@
   "OptionsPageIsAutopageizeContinueEnabledText": {
     "message": "实验性功能：如果读完后大声朗读，则会读出添加的内容。 （当您将其与Autopagerize匹配时，您可能会感到高兴。请注意，此功能目前存在各种不确定因素，因此无法稳定运行）"
   },
+  "OptionsPageIsDelayAutoScrollEnabledText": {
+    "message": "暂时停止使用鼠标滚轮、键盘上的上/下/左/右键等进行自动滚动"
+  },
   "OptionsPageConvertTableURLLinkText": {
     "message": "阅读数据库（链接到Wedata JSON格式）"
   },

@@ -151,6 +151,10 @@ function getStopSpeechClickTarget(){
   return document.getElementById("stopSpeechClickTarget").value;
 }
 
+function getIsDelayAutoScrollEnabled(){
+  return document.getElementById("isDelayAutoScrollEnabled").checked ? "true" : "false";
+}
+
 class SpeechSynthesisSetting {
   constructor(lang, identity, pitch, rate, volume){
     this.lang = lang;
@@ -301,6 +305,7 @@ function saveButtonClicked(voices, savedInformationElement){
     "regexpConvertTableURL": getRegexpConvertTableURL(),
     "startSpeechClickTarget": getStartSpeechClickTarget(),
     "stopSpeechClickTarget": getStopSpeechClickTarget(),
+    "isDelayAutoScrollEnabled": getIsDelayAutoScrollEnabled(),
   });
 
   savedInformationElement.innerHTML = "saved!";
@@ -334,6 +339,7 @@ function loadSettings(voices){
     "regexpConvertTableURL",
     "startSpeechClickTarget",
     "stopSpeechClickTarget",
+    "isDelayAutoScrollEnabled",
   ], (localStorage) => {
     if("lang" in localStorage){
       let lang = localStorage.lang;
@@ -398,6 +404,14 @@ function loadSettings(voices){
       document.getElementById("stopSpeechClickTarget").value = localStorage.stopSpeechClickTarget;
     }else{
       document.getElementById("stopSpeechClickTarget").value = "0";
+    }
+    if("isDelayAutoScrollEnabled" in localStorage){
+      isDelayAutoScrollEnabled = localStorage.isDelayAutoScrollEnabled;
+      if(isDelayAutoScrollEnabled == "false"){
+        document.getElementById("isDelayAutoScrollEnabled").checked = false;
+      }else{
+        document.getElementById("isDelayAutoScrollEnabled").checked = true;
+      }
     }
   });
 }
