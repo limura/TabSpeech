@@ -531,8 +531,11 @@ document.getElementById("stopSpeechClickTarget").addEventListener('change', (ev)
   console.log("stop speech option:", startValue, stopValue, ev);
 });
 
+init();
 const awaitVoices = new Promise(resolve => speechSynthesis.onvoiceschanged = resolve);
 awaitVoices.then(()=>{init();});
+speechSynthesis.onvoiceschanged = init;
 
 migrateFromLocalStorage();
 localizeHtmlPage();
+

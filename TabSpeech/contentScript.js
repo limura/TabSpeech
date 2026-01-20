@@ -8,13 +8,38 @@ function getVoiceList() {
   return voices;
 }
 
+function StartSpeechByContentScript(speechText, voiceSetting){
+    StopSpeech();
+    let utterance = new SpeechSynthesisUtterance(speechText);
+    utterance.onboundary = function(event){
+        SpeechOnBoundary(event);
+    };
+    utterance.onstart = function(event){
+      //chrome.runtime.sendMessage({"type": "StartSpeech", "event": event, "tabId": tabId });
+    };
+    utterance.onend = function(event){
+        SpeechOnEnd(event);
+    };
+    utterance.onerror = function(event){console.log("SpeechSynthesisUtterance Event onError", event);};
+    utterance.onmark = function(event){console.log("SpeechSynthesisUtterance Event onMark", event);};
+    utterance.onpause = function(event){console.log("SpeechSynthesisUtterance Event onPause", event);};
+    utterance.onresume = function(event){console.log("SpeechSynthesisUtterance Event onResume", event);};
+    ApplyVoiceSetting(utterance, voiceSetting);
+    //currentSpeechTabId = tabId;
+    speechSynthesis.speak(utterance);
+}
+
 function StartSpeech(text, voiceSetting) {
-  autoScrollActive = true;
-  chrome.runtime.sendMessage({
-    type: 'StartSpeech',
-    speechText: text,
-    voiceSetting: voiceSetting,
-  });
+    autoScrollActive = true;
+    if(chrome.offscreen) {
+        chrome.runtime.sendMessage({
+            type: 'StartSpeech',
+            speechText: text,
+            voiceSetting: voiceSetting,
+        });
+    }else{
+        StartSpeechByContentScript(text, voiceSetting);
+    }
 }
 
 function StopSpeech(){
@@ -826,3 +851,4 @@ window.addEventListener("beforeunload", function() {
 });
 
 //console.log("TabSpeech contentscript loaded.");
+
