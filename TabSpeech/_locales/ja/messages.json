@@ -99,10 +99,10 @@
     "message": "使用しない"
   },
   "DefaultConvertTableURL": {
-    "message": "http://wedata.net/databases/TTS%20Convert%20Table%20for%20Apple%20TTS%20Engine%20(jp)/items.json"
+    "message": ""
   },
   "DefaultRegexpConvertTableURL": {
-    "message": "http://wedata.net/databases/TTS%20Regulaer%20Expression%20Convert%20Table%20for%20Apple%20TTS%20Engine%20(jp)/items.json"
+    "message": ""
   },
   "RightClickMenu_SpeechSelected_Title": {
     "message": "選択範囲のみを発話"

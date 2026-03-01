@@ -1,9 +1,9 @@
 let expireMillisecond = 100 * 60 * 60 * 1;
-let kotosekaiSiteInfoURL = "http://wedata.net/databases/%E3%81%93%E3%81%A8%E3%81%9B%E3%81%8B%E3%81%84Web%E3%83%9A%E3%83%BC%E3%82%B8%E8%AA%AD%E3%81%BF%E8%BE%BC%E3%81%BF%E7%94%A8%E6%83%85%E5%A0%B1/items.json";
+//let kotosekaiSiteInfoURL = "http://wedata.net/databases/%E3%81%93%E3%81%A8%E3%81%9B%E3%81%8B%E3%81%84Web%E3%83%9A%E3%83%BC%E3%82%B8%E8%AA%AD%E3%81%BF%E8%BE%BC%E3%81%BF%E7%94%A8%E6%83%85%E5%A0%B1/items.json";
 let kotosekaiSiteInfoTSVURL = "https://docs.google.com/spreadsheets/d/1t2wFx8psbc4EZxlacCas6lknO1S_PW6wsR9Qxq7HEnM/pub?gid=0&single=true&output=tsv";
-let autopagerizeSiteInfoURL = "http://wedata.net/databases/AutoPagerize/items.json";
-let defaultConvertTableURL = "http://wedata.net/databases/TTS%20Convert%20Table%20for%20Apple%20TTS%20Engine%20(jp)/items.json";
-let defaultRegexpConvertTableURL = "http://wedata.net/databases/TTS%20Regulaer%20Expression%20Convert%20Table%20for%20Apple%20TTS%20Engine%20(jp)/items.json";
+//let autopagerizeSiteInfoURL = "http://wedata.net/databases/AutoPagerize/items.json";
+let defaultConvertTableURL = ""//"http://wedata.net/databases/TTS%20Convert%20Table%20for%20Apple%20TTS%20Engine%20(jp)/items.json";
+let defaultRegexpConvertTableURL = ""//"http://wedata.net/databases/TTS%20Regulaer%20Expression%20Convert%20Table%20for%20Apple%20TTS%20Engine%20(jp)/items.json";
 
 function chromeRuntimeSendMessageWrap(opt){
   chrome.runtime.sendMessage(opt, (r) => {
@@ -132,10 +132,10 @@ function GetFromStorage(key){
 
 async function UpdateSiteInfoAsync(){
   let siteInfoKotosekai = await FetchSiteInfo(kotosekaiSiteInfoTSVURL);
-  let siteInfoAutopagerize = await FetchSiteInfo(autopagerizeSiteInfoURL);
+  //let siteInfoAutopagerize = await FetchSiteInfo(autopagerizeSiteInfoURL);
   siteInfoFetchMillisecond = (new Date()).getTime();
   var siteInfo = [].concat(siteInfoKotosekai);
-  siteInfo = siteInfo.concat(siteInfoAutopagerize);
+  //siteInfo = siteInfo.concat(siteInfoAutopagerize);
   chrome.storage.local.set({
     'siteInfo': siteInfo,
     'siteInfoFetchMillisecond': siteInfoFetchMillisecond,
@@ -207,6 +207,7 @@ async function GetConvertTables(){
 function SearchSiteInfo(url, siteInfo){
   var result = [];
   siteInfo.forEach(function(info){
+    if(!info) { return; }
     if("data" in info){
       let data = info["data"];
       if("url" in data){
