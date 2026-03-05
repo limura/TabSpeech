@@ -544,8 +544,18 @@ chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse){
     switch(request.type){
     case "StartSpeech":
-      StatusStartSpeech();
-      SendStartSpeechEvent(sender.tab?.id, request['speechText'], request['voiceSetting']);
+      if(chrome.offscreen) {
+        console.log('speech by offscreen.');
+        StatusStartSpeech();
+        SendStartSpeechEvent(sender.tab?.id, request['speechText'], request['voiceSetting']);
+      }else{
+        chromeTabsSendMessageWrap(request.tab.id, {
+            type: 'StartSpeech-force-speech-on-contentScript',
+            speechText: request['speechText'],
+            voiceSetting: request['voiceSetting'],
+          }
+        );
+      }
       break;
     case "EndSpeech":
       StatusEndSpeech();

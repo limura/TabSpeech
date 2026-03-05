@@ -31,15 +31,11 @@ function StartSpeechByContentScript(speechText, voiceSetting){
 
 function StartSpeech(text, voiceSetting) {
     autoScrollActive = true;
-    if(chrome.offscreen) {
-        chrome.runtime.sendMessage({
-            type: 'StartSpeech',
-            speechText: text,
-            voiceSetting: voiceSetting,
-        });
-    }else{
-        StartSpeechByContentScript(text, voiceSetting);
-    }
+    chrome.runtime.sendMessage({
+      type: 'StartSpeech',
+      speechText: text,
+      voiceSetting: voiceSetting,
+    });
 }
 
 function StopSpeech(){
@@ -776,6 +772,8 @@ chrome.runtime.onMessage.addListener(
     case "SpeechOnServiceWorker_OnEnd":
       SpeechOnEnd(message.event);
       break;
+    case "StartSpeech-force-speech-on-contentScript":
+      StartSpeechByContentScript(message.speechText, message.voiceSetting);
     default:
       break;
     }
