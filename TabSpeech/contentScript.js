@@ -565,11 +565,6 @@ function SpeechOnBoundary(event){
     speechEventHandlerHolder.onboundary(event);
   }
 }
-function SpeechOnStart(event){
-  if(speechEventHandlerHolder.onstart){
-    speechEventHandlerHolder.onstart(event);
-  }
-}
 function SpeechOnEnd(event){
   if(speechEventHandlerHolder.onend){
     speechEventHandlerHolder.onend(event);
@@ -610,10 +605,6 @@ function SpeechWithPageElementArray(elementArray, index, voiceSetting, SiteInfo,
       }
     }
     BoundarySpeechEventHandle(elementArray, event);
-  };
-  speechEventHandlerHolder.onstart = function(event){
-    //console.log("SpeechSynthesisUtterance Event onStart", event);
-    //chrome.runtime.sendMessage({"type": "StartSpeech"});
   };
   speechEventHandlerHolder.onend = function(event){
     //console.log("SpeechSynthesisUtterance Event onEnd", event);
@@ -725,19 +716,17 @@ chrome.runtime.onMessage.addListener(
       isStopped = false;
       ResumeSpeech();
       break;
-    case "SpeechOnServiceWorker_OnBoundary":
+    case "Speech_OnBoundary":
       let event = message.event; // 何故か message に入っているはずの charIndex が消えているので別口で送っているもので上書きします。
       event.charIndex = message.charIndex
       SpeechOnBoundary(message.event);
       break;
-    case "SpeechOnServiceWorker_OnStart":
-      SpeechOnStart(message.event);
-      break;
-    case "SpeechOnServiceWorker_OnEnd":
+    case "Speech_OnEnd":
       SpeechOnEnd(message.event);
       break;
-    case "StartSpeech-force-speech-on-contentScript":
+    case "Speech_StartOnContentScript":
       StartSpeechByContentScript(message.speechText, message.voiceSetting);
+      break;
     default:
       break;
     }

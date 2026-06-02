@@ -357,9 +357,16 @@ async function setupOffscreenDocument(path) {
 
 let speechHtmlPath = "speechSynthesis.html";
 
+// 発話バックエンドの選択:
+//   chrome.offscreen がある(Chrome 系) → offscreen ドキュメントで発話する
+//   chrome.offscreen が無い(Safari 等)  → offscreen が使えないので content script で直接発話する
+function isOffscreenSpeechBackendAvailable() {
+  return !!chrome.offscreen;
+}
+
 // offscreen ドキュメント(speechSynthesis.html)が今あるかどうか
 async function hasOffscreenDocument() {
-  if (!chrome.offscreen) { return false; }
+  if (!isOffscreenSpeechBackendAvailable()) { return false; }
   const offscreenUrl = chrome.runtime.getURL(speechHtmlPath);
   const existingContexts = await chrome.runtime.getContexts({
     contextTypes: ['OFFSCREEN_DOCUMENT'],
@@ -397,7 +404,7 @@ async function SendStartSpeechEvent(tabId, text, voiceSetting) {
 function OnBoundaryEventHandler(request) {
   //console.log("OnBoundaryEventHandler:", request, request.tabId, request.charIndex, request.event);
   chromeTabsSendMessageWrap(request.tabId, {
-    "type": "SpeechOnServiceWorker_OnBoundary",
+    "type": "Speech_OnBoundary",
     "event": request.event,
     "tabId": request.tabId,
     "charIndex": request.charIndex
@@ -406,7 +413,7 @@ function OnBoundaryEventHandler(request) {
 async function EndSpeechEventHandler(request){
   //console.log("EndSpeechEventHandler: ", request, request.tabId, request.event);
   chromeTabsSendMessageWrap(request.tabId, {
-    "type": "SpeechOnServiceWorker_OnEnd",
+    "type": "Speech_OnEnd",
     "event": request.event,
   });
 
@@ -429,12 +436,14 @@ chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse){
     switch(request.type){
     case "StartSpeech":
-      if(chrome.offscreen) {
+      if(isOffscreenSpeechBackendAvailable()) {
+        // offscreen バックエンド(Chrome 系)
         console.log('speech by offscreen.');
         SendStartSpeechEvent(sender.tab?.id, request['speechText'], request['voiceSetting']);
       }else{
+        // content script バックエンド(Safari 等、offscreen 非対応)
         chromeTabsSendMessageWrap(sender.tab?.id, {
-            type: 'StartSpeech-force-speech-on-contentScript',
+            type: 'Speech_StartOnContentScript',
             speechText: request['speechText'],
             voiceSetting: request['voiceSetting'],
           }

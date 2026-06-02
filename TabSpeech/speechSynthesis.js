@@ -69,13 +69,17 @@ function StartSpeech(tabId, speechText, voiceSetting){
 }
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+    // offscreen 宛て(target: 'offscreen')のメッセージだけを処理する。
+    // content script → background の StartSpeech 等も runtime ブロードキャストでここに届くため、
+    // それらを誤って処理して二重発話しないように弾く。
+    if (request.target !== 'offscreen') {
+        return;
+    }
     console.log("onMessage", request);
     switch (request.type) {
+        // 停止は background が offscreen ドキュメントごと閉じて行うため、ここに StopSpeech は無い。
         case "StartSpeech":
             StartSpeech(request.tabId, request.speechText, request.voiceSetting);
-            break;
-        case "StopSpeech":
-            StopSpeech();
             break;
         case "PauseSpeech":
             PauseSpeech();
