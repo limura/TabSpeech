@@ -50,10 +50,10 @@ function ResumeSpeech(){
 }
 
 function CreateVoiceSettingFromMessage(message) {
-  return CreateVoiceSetting(message.lang, message.voice, message.pitch, message.rate, message.volume, message.isScrollEnabled, message.isAutopagerizeContinueEnabled, message.convertTable, message.regexpConvertTable, message.scrollPositionRatio, message.extensionId);
+  return CreateVoiceSetting(message.lang, message.voice, message.pitch, message.rate, message.volume, message.isScrollEnabled, message.isAutopagerizeContinueEnabled, message.convertTable, message.regexpConvertTable, message.scrollPositionRatio);
 }
 
-function CreateVoiceSetting(lang, voice, pitch, rate, volume, isScrollEnabled, isAutopagerizeContinueEnabled, convertTable, regexpConvertTable, scrollPositionRatio, extensionId){
+function CreateVoiceSetting(lang, voice, pitch, rate, volume, isScrollEnabled, isAutopagerizeContinueEnabled, convertTable, regexpConvertTable, scrollPositionRatio){
   return {
     "lang": lang,
     "voice": voice,
@@ -65,7 +65,6 @@ function CreateVoiceSetting(lang, voice, pitch, rate, volume, isScrollEnabled, i
     "convertTable": convertTable,
     "regexpConvertTable": regexpConvertTable,
     "scrollPositionRatio": scrollPositionRatio,
-    "extensionId": extensionId,
   };
 }
 

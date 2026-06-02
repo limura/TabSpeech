@@ -13,19 +13,10 @@ function localizeHtmlPage() {
   });
 }
 
-async function getVoiceList(speechSynthesis) {
-  return new Promise(resolve =>{
-    if(chrome.tts){
-      chrome.tts.getVoices((data)=>{
-        console.log("voices on chrome.tts", data);
-        resolve(data);
-      })
-    }else{
-      let voices = speechSynthesis.getVoices();
-      console.log("voices on speechSynthesis", voices);
-      resolve(voices);
-    }
-  });
+// 本番の発話(offscreen / content の window.speechSynthesis)と声を揃えるため、
+// オプション画面でも window.speechSynthesis の声一覧を使う。
+function getVoiceList(speechSynthesis) {
+  return speechSynthesis.getVoices();
 }
 
 function getVoiceLangueges(voices) {
@@ -52,8 +43,6 @@ function getVoiceNames(voices) {
   for(let voice of voices){
     if("name" in voice){
       resultSet.add(voice.name);
-    }else if("voiceName" in voice){
-      resultSet.add(voice.voiceName);
     }
   }
   return Array.from(resultSet.values());
@@ -62,9 +51,6 @@ function getVoiceNames(voices) {
 function searchVoiceFromName(voices, name){
   for(let voice of voices){
     if("name" in voice && voice.name == name){
-      return voice;
-    }
-    if("voiceName" in voice && voice.voiceName == name){
       return voice;
     }
   }
@@ -155,35 +141,8 @@ function getIsDelayAutoScrollEnabled(){
   return document.getElementById("isDelayAutoScrollEnabled").checked ? "true" : "false";
 }
 
-function testOnChromeTTS(voices){
-  console.log("test on chrome tts", voices);
-  let testText = getTestText();
-  let options = {};
-  let lang = getLang(voices);
-  if(lang){
-    options.lang = lang;
-  }
-  let voice = getVoice(voices);
-  if(voice){
-    options.voiceName = voice.voiceName;
-    if("extensionId" in voice){
-      options.extensionId = voice.extensionId;
-    }
-  }
-  options.pitch = Number(getPitch());
-  options.rate = Number(getRate());
-  options.volume = Number(getVolume());
-
-  console.log(testText, options);
-
-  chrome.tts.speak(testText, options);
-}
-
+// テスト再生も本番と同じ window.speechSynthesis を使う(テスト=本番にする)。
 function testButtonClicked(speechSynthesis, voices){
-  if(chrome.tts){
-    testOnChromeTTS(voices);
-    return;
-  }
   speechSynthesis.cancel();
   let testText = getTestText();
   let utterance = new SpeechSynthesisUtterance(testText);
@@ -198,14 +157,6 @@ function testButtonClicked(speechSynthesis, voices){
   utterance.pitch = getPitch();
   utterance.rate = getRate();
   utterance.volume = getVolume();
-
-  console.log(testText,
-    "lang", lang,
-    "voice", voice,
-    "pitch", utterance.pitch,
-    "rate", utterance.pitch,
-    "volume", utterance.pitch);
-
   speechSynthesis.speak(utterance);
 }
 
@@ -218,20 +169,8 @@ function saveButtonClicked(voices, savedInformationElement){
   }
   let voice = getVoice(voices);
   if(voice){
-    if(voice.voiceName){
-      chrome.storage.local.set({voice: voice.voiceName});
-      console.log("save: voice", voice.voiceName);
-    }else{
-      chrome.storage.local.set({voice: voice.name});
-      console.log("save: voice", voice.name);
-    }
-    if(voice.extensionId){
-      chrome.storage.local.set({extensionId: voice.extensionId});
-      console.log("save: extensionId", voice.extensionId);
-    }else{
-      chrome.storage.local.remove("extensionId");
-      console.log("save: remove extensionId");
-    }
+    chrome.storage.local.set({voice: voice.name});
+    console.log("save: voice", voice.name);
   }else{
     chrome.storage.local.remove("voice");
   }
