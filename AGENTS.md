@@ -11,8 +11,9 @@ TabSpeech は、表示中のタブの本文を Web Speech API で読み上げる
 - **ストア用 zip 作成**: `sh makeZip.sh`(`TabSpeech/` を `TabSpeech.zip` に固める。`zip` コマンドが必要)。
 - **バージョン更新**: `TabSpeech/manifest.json` の `version` を上げ、`README.md` の「更新履歴」に追記する(リリースのたびに両方更新するのが慣例)。
 - **デバッグ**: service worker は `chrome://extensions` の「service worker」リンクから専用 DevTools を開く。offscreen ドキュメントと content script はそれぞれのコンソールに出力。コード内の `console.log` は多くがコメントアウトされているので、調査時は適宜外す。
+- **Safari / iOS・iPadOS での確認**: Safari Web Extension 用の Xcode プロジェクトがリポジトリ外の `../xcode/TabSpeech` にある(変換ツール生成・git 管理外)。拡張の実体はその `Shared (Extension)/Resources/` で、`sh syncToXcode.sh`(リポジトリルート)で `TabSpeech/` の中身をそこへ同期してから Xcode でビルドする。**注意: Safari は service worker / 拡張リソースを強くキャッシュする**ため、コードを差し替えても古い版が動き続け「バックグラウンドコンテンツを読み込めませんでした」等が出ることがある。反映されない時は **Safari を完全終了(mac は ⌘Q、iOS は App スイッチャーから終了)し、拡張を一度オフ→オン**してから再読み込みする(Chrome の再読み込み一発とは勝手が違う)。iOS のデバッグは端末を Mac に有線接続し、Mac の Safari「開発」メニュー →[端末名]から各コンテキスト(ページ=content script / service worker / ポップアップ)の Web インスペクタを開く。
 
-リポジトリルートには README/TODO/LICENSE/makeZip.sh/ScreenShot があり、**読み込み可能な拡張本体は `TabSpeech/` サブフォルダ**にある、という構成に注意。
+リポジトリルートには README/TODO/LICENSE/makeZip.sh/syncToXcode.sh/ScreenShot があり、**読み込み可能な拡張本体は `TabSpeech/` サブフォルダ**にある、という構成に注意。
 
 ## アーキテクチャ(複数ファイルにまたがる全体像)
 
@@ -30,21 +31,21 @@ TabSpeech は、表示中のタブの本文を Web Speech API で読み上げる
 1. 起動トリガ(後述)で `background.js` の `RunStartSpeech()` が走り、`chrome.storage.local` から音声設定・SiteInfo(URL ごとの本文 XPath)・読み替え辞書を集めて、対象タブの content script へ `KickSpeech` / `KickSpeechRepeatMode` / `KickSpeechOnlySelected` を送る。
 2. `contentScript.js` が SiteInfo の `pageElement` XPath(無ければ `//body`)で読み上げ対象 Element を抽出し、選択範囲から開始位置を決め、読み替えを適用したテキストを作って、`StartSpeech` メッセージを background へ返す。
 3. **content script で直接 `window.speechSynthesis` を呼ぶとユーザー操作前は `not-allowed` で失敗する**ため、background は offscreen ドキュメント(`speechSynthesis.html`)を生成してテキストを転送する。
-4. `speechSynthesis.js`(offscreen)が `speechSynthesis.speak()` を実行し、`onboundary` / `onend` を background 経由で content script に返す(`OnBoundary` / `EndSpeech` → `SpeechOnServiceWorker_OnBoundary` / `_OnEnd` に変換して再配信)。
+4. `speechSynthesis.js`(offscreen)が `speechSynthesis.speak()` を実行し、`onboundary` / `onend` を background 経由で content script に返す(offscreen→background が `OnBoundary` / `EndSpeech`、background→content が `Speech_OnBoundary` / `Speech_OnEnd` に変換して再配信)。
 5. content script は boundary イベントで現在発話中の文を Selection/Range でハイライトし、オートスクロールする。
 
-つまり発話エンジンは **offscreen ドキュメント上**で動く。`background.js` の `RunSpeechOnServiceWorker`(`chrome.tts` を使う経路)は **レガシー/デッドコード**で、`contentScript.js` 側が `if(chrome && false)` でガードしているため `SpeechOnServiceWorker` は送られない。
+つまり発話エンジンは **offscreen ドキュメント上**で動く(Safari 等のフォールバック時のみ content script 上)。**かつて存在した `chrome.tts` を使う `RunSpeechOnServiceWorker` 経路はリファクタ(フェーズ4a)で削除済み**で、発話バックエンドは「offscreen(Chrome 系)」と「content script(Safari/タッチ端末)」の 2 つだけ。
 
 注意点:
 - offscreen の生成理由は `['AUDIO_PLAYBACK', 'WORKERS']`。`AUDIO_PLAYBACK` 単独だと約 30 秒で offscreen が無反応になるため `WORKERS` を足している(`setupOffscreenDocument` のコメント参照)。
-- **Safari 等で `chrome.offscreen` が無い場合**のフォールバックとして、background は `StartSpeech-force-speech-on-contentScript` を送り、content script が `StartSpeechByContentScript` で直接発話する。
+- **Safari 等で `chrome.offscreen` が無い場合**のフォールバックとして、background は `Speech_StartOnContentScript` を送り、content script が `StartSpeechByContentScript` で直接発話する。
 
 ### メッセージ種別(コンテキスト間プロトコル)
 
 メッセージ駆動なので、`type` 文字列とその流れる向きを把握するのが読解の鍵。
 
-- **background `onMessage`**(content / offscreen から): `StartSpeech`(content から → offscreen 生成 or フォールバック)、`EndSpeech`(offscreen から → content へ中継し offscreen を閉じる)、`OnBoundary`(offscreen から → content へ中継)、`RunStartSpeech`/`RunStopSpeech`/`RunPauseSpeech`/`RunResumeSpeech`(popup や content の 2 ボタンジェスチャから)、`KickSpeechRepeatMode`、`onRemoved`(content の beforeunload から → offscreen にタブ消滅を通知)、`SpeechOnServiceWorker`/`StopChromeTTS`(レガシー)。
-- **content `onMessage`**(background から): `KickSpeech`/`KickSpeechRepeatMode`/`KickSpeechOnlySelected`、`StopSpeech`/`PauseSpeech`/`ResumeSpeech`、`SpeechOnServiceWorker_OnBoundary`/`_OnStart`/`_OnEnd`、`StartSpeech-force-speech-on-contentScript`。
+- **background `onMessage`**(content / offscreen から): `StartSpeech`(content から → offscreen 生成 or フォールバック)、`EndSpeech`(offscreen から → content へ中継し offscreen を閉じる)、`OnBoundary`(offscreen から → content へ中継)、`RunStartSpeech`/`RunStopSpeech`/`RunPauseSpeech`/`RunResumeSpeech`(popup・2 ボタンジェスチャ・FAB・2 本指タップから)、`KickSpeechRepeatMode`、`onRemoved`(content の beforeunload から → offscreen にタブ消滅を通知)。
+- **content `onMessage`**(background から): `KickSpeech`/`KickSpeechRepeatMode`/`KickSpeechOnlySelected`、`StopSpeech`/`PauseSpeech`/`ResumeSpeech`、`Speech_OnBoundary`/`Speech_OnEnd`、`Speech_StartOnContentScript`(フォールバック発話)。
 - **offscreen `onMessage`**(background から): `StartSpeech`/`StopSpeech`/`TabClosed`。
 
 ### 起動トリガ
@@ -53,6 +54,7 @@ TabSpeech は、表示中のタブの本文を Web Speech API で読み上げる
 - popup のボタン(開始/停止/中断/再開/繰り返し開始/設定)。
 - 右クリックメニュー: 「選択範囲のみ読み上げ」(selection)と「ここから読み上げ」(page)。`install` 時に作成。
 - **2 ボタン同時押しジェスチャ**: `startSpeechClickTarget`/`stopSpeechClickTarget` に `mousedown` の `ev.buttons` ビットマスク値(3=左+右, 5=左+中, 6=右+中)を保存し、content script が一致時に開始/停止する(該当時は contextmenu も抑止)。
+- **フローティングボタン(FAB)/ 2 本指タップ**(`contentScript.js` 末尾): iOS・iPadOS の Safari や Firefox for Android 等タッチ端末向けトリガ。`matchMedia('(hover: none) and (pointer: coarse)')` でタッチ主体端末を判定。`fabDisplayMode`(`auto`/`always`/`selection`/`hidden`)と `touchGestureMode`(`auto`/`on`/`off`)で出し分け、既定の `auto` は **タッチ端末で表示・有効 / PC で非表示・無効**。FAB は Shadow DOM 内に置き本文抽出(`//body`)に混ざらないようにする。開始/停止は既存と同じ `RunStartSpeech`/`RunStopSpeech` を background へ送るだけ(開始位置は選択範囲から決まる)。FAB・2 本指タップとも開始/停止のトグル(マウスジェスチャは開始固定/停止固定だが、こちらは入力手段の制約上トグルで統一)。iOS は発話にユーザー操作が必須なため、タップ時に無音発話でエンジンを解錠する(`primeSpeechSynthesis`)。`forceTextSelection` で選択禁止ページでも選択可にできる。
 
 ### SiteInfo(AutoPagerize 形式)
 
@@ -66,7 +68,7 @@ TabSpeech は、表示中のタブの本文を Web Speech API で読み上げる
 
 ## 設定とストレージの落とし穴
 
-- 設定はすべて `chrome.storage.local` に保存。主なキー: `lang` `voice` `extensionId` `pitch` `rate` `volume` `isScrollEnabled` `scrollPositionRatio` `isAutopagerizeContinueEnabled` `convertTableURL` `regexpConvertTableURL` `startSpeechClickTarget` `stopSpeechClickTarget` `isDelayAutoScrollEnabled`。キャッシュ系: `siteInfo` `siteInfoFetchMillisecond` `convertTable` `regexpConvertTable` `convertTableFetchMillisecond` `currentSpeechTabId` `migrateFromLocalStorage`。
+- 設定はすべて `chrome.storage.local` に保存。主なキー: `lang` `voice` `extensionId` `pitch` `rate` `volume` `isScrollEnabled` `scrollPositionRatio` `isAutopagerizeContinueEnabled` `convertTableURL` `regexpConvertTableURL` `startSpeechClickTarget` `stopSpeechClickTarget` `isDelayAutoScrollEnabled` `fabDisplayMode` `touchGestureMode` `forceTextSelection`。キャッシュ系: `siteInfo` `siteInfoFetchMillisecond` `convertTable` `regexpConvertTable` `convertTableFetchMillisecond` `currentSpeechTabId` `migrateFromLocalStorage`。
 - **boolean は文字列 `"true"`/`"false"` で保存している**(`chrome.storage.local` に boolean が安定して入らないため、というコード上の判断)。比較も文字列で行うこと。
 - 旧 `window.localStorage` から `chrome.storage.local` への移行が `options.js` の `migrateFromLocalStorage()` にある。未移行のまま `install` するとオプションページが自動で開く。
 

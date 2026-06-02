@@ -112,5 +112,38 @@
   },
   "BackgroundJS_CreateOffscreenReasons": {
     "message": "Used for making speeches."
+  },
+  "OptionsPageTouchSectionTitle": {
+    "message": "Touch device settings (iOS / tablets, etc.)"
+  },
+  "OptionsPageFabDisplayModeLabel": {
+    "message": "On-screen speech button (floating button)"
+  },
+  "OptionsPageFabModeAuto": {
+    "message": "Auto (shown on touch devices, hidden on PC)"
+  },
+  "OptionsPageFabModeAlways": {
+    "message": "Always show"
+  },
+  "OptionsPageFabModeSelection": {
+    "message": "Show only when text is selected"
+  },
+  "OptionsPageFabModeHidden": {
+    "message": "Do not show"
+  },
+  "OptionsPageTouchGestureLabel": {
+    "message": "Start/stop speech with a two-finger tap"
+  },
+  "OptionsPageTouchGestureAuto": {
+    "message": "Auto (enabled on touch devices)"
+  },
+  "OptionsPageTouchGestureOn": {
+    "message": "Enabled"
+  },
+  "OptionsPageTouchGestureOff": {
+    "message": "Disabled"
+  },
+  "OptionsPageForceTextSelectionLabel": {
+    "message": "Allow text selection even on pages that block it"
   }
 }

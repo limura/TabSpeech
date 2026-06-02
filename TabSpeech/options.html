@@ -68,6 +68,31 @@ Speaker: <span id="langSelector">
         <option value="6">Mouse2 + Mouse3</option>
     </select>
 </div>
+<hr>
+<div>
+<h3 data-i18n-text="OptionsPageTouchSectionTitle">iOS / タブレット等のタッチ操作向け設定</h3>
+<div>
+    <span data-i18n-text="OptionsPageFabDisplayModeLabel">画面内の読み上げボタン(フローティングボタン)</span>
+    <select id="fabDisplayMode">
+        <option value="auto" data-i18n-text="OptionsPageFabModeAuto">自動(タッチ端末では表示・PCでは非表示)</option>
+        <option value="always" data-i18n-text="OptionsPageFabModeAlways">常に表示</option>
+        <option value="selection" data-i18n-text="OptionsPageFabModeSelection">テキスト選択時のみ表示</option>
+        <option value="hidden" data-i18n-text="OptionsPageFabModeHidden">表示しない</option>
+    </select>
+</div>
+<div>
+    <span data-i18n-text="OptionsPageTouchGestureLabel">2本指タップで読み上げ開始/停止</span>
+    <select id="touchGestureMode">
+        <option value="auto" data-i18n-text="OptionsPageTouchGestureAuto">自動(タッチ端末で有効)</option>
+        <option value="on" data-i18n-text="OptionsPageTouchGestureOn">有効</option>
+        <option value="off" data-i18n-text="OptionsPageTouchGestureOff">無効</option>
+    </select>
+</div>
+<div>
+    <label for="forceTextSelection" style="cursor: pointer"><input type="checkbox" id="forceTextSelection" name="forceTextSelection" value="1"/><span data-i18n-text="OptionsPageForceTextSelectionLabel">選択できないページでもテキストを選択可能にする</span></label>
+</div>
+</div>
+<hr>
 <div>
 <span data-i18n-text="OptionsPageConvertTableURLLinkText">読み替えデータベース(Wedata の JSON形式へのlink)</span><input type="text" name="convertTableURL" id="convertTableURL" size="80" value=""/>
 </div>

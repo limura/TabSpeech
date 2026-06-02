@@ -112,5 +112,38 @@
   },
   "BackgroundJS_CreateOffscreenReasons": {
     "message": "用於發表演講。"
+  },
+  "OptionsPageTouchSectionTitle": {
+    "message": "觸控裝置設定(iOS / 平板等)"
+  },
+  "OptionsPageFabDisplayModeLabel": {
+    "message": "頁面內朗讀按鈕(浮動按鈕)"
+  },
+  "OptionsPageFabModeAuto": {
+    "message": "自動(觸控裝置顯示,電腦端隱藏)"
+  },
+  "OptionsPageFabModeAlways": {
+    "message": "永遠顯示"
+  },
+  "OptionsPageFabModeSelection": {
+    "message": "僅在選取文字時顯示"
+  },
+  "OptionsPageFabModeHidden": {
+    "message": "不顯示"
+  },
+  "OptionsPageTouchGestureLabel": {
+    "message": "雙指輕點開始/停止朗讀"
+  },
+  "OptionsPageTouchGestureAuto": {
+    "message": "自動(觸控裝置啟用)"
+  },
+  "OptionsPageTouchGestureOn": {
+    "message": "啟用"
+  },
+  "OptionsPageTouchGestureOff": {
+    "message": "停用"
+  },
+  "OptionsPageForceTextSelectionLabel": {
+    "message": "在禁止選取的頁面上也允許選取文字"
   }
 }

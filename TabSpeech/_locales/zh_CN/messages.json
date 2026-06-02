@@ -112,5 +112,38 @@
   },
   "BackgroundJS_CreateOffscreenReasons": {
     "message": "用于发表演讲。"
+  },
+  "OptionsPageTouchSectionTitle": {
+    "message": "触控设备设置(iOS / 平板等)"
+  },
+  "OptionsPageFabDisplayModeLabel": {
+    "message": "页面内朗读按钮(悬浮按钮)"
+  },
+  "OptionsPageFabModeAuto": {
+    "message": "自动(触控设备显示,电脑端隐藏)"
+  },
+  "OptionsPageFabModeAlways": {
+    "message": "始终显示"
+  },
+  "OptionsPageFabModeSelection": {
+    "message": "仅在选中文本时显示"
+  },
+  "OptionsPageFabModeHidden": {
+    "message": "不显示"
+  },
+  "OptionsPageTouchGestureLabel": {
+    "message": "双指轻点开始/停止朗读"
+  },
+  "OptionsPageTouchGestureAuto": {
+    "message": "自动(触控设备启用)"
+  },
+  "OptionsPageTouchGestureOn": {
+    "message": "启用"
+  },
+  "OptionsPageTouchGestureOff": {
+    "message": "禁用"
+  },
+  "OptionsPageForceTextSelectionLabel": {
+    "message": "在禁止选择的页面上也允许选择文本"
   }
 }

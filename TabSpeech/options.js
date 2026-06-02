@@ -141,6 +141,18 @@ function getIsDelayAutoScrollEnabled(){
   return document.getElementById("isDelayAutoScrollEnabled").checked ? "true" : "false";
 }
 
+function getFabDisplayMode(){
+  return document.getElementById("fabDisplayMode").value;
+}
+
+function getTouchGestureMode(){
+  return document.getElementById("touchGestureMode").value;
+}
+
+function getForceTextSelection(){
+  return document.getElementById("forceTextSelection").checked ? "true" : "false";
+}
+
 // テスト再生も本番と同じ window.speechSynthesis を使う(テスト=本番にする)。
 function testButtonClicked(speechSynthesis, voices){
   speechSynthesis.cancel();
@@ -190,6 +202,9 @@ function saveButtonClicked(voices, savedInformationElement){
     "startSpeechClickTarget": getStartSpeechClickTarget(),
     "stopSpeechClickTarget": getStopSpeechClickTarget(),
     "isDelayAutoScrollEnabled": getIsDelayAutoScrollEnabled(),
+    "fabDisplayMode": getFabDisplayMode(),
+    "touchGestureMode": getTouchGestureMode(),
+    "forceTextSelection": getForceTextSelection(),
   });
 
   savedInformationElement.innerHTML = "saved!";
@@ -224,6 +239,9 @@ function loadSettings(voices){
     "startSpeechClickTarget",
     "stopSpeechClickTarget",
     "isDelayAutoScrollEnabled",
+    "fabDisplayMode",
+    "touchGestureMode",
+    "forceTextSelection",
   ], (localStorage) => {
     if("lang" in localStorage){
       let lang = localStorage.lang;
@@ -296,6 +314,21 @@ function loadSettings(voices){
       }else{
         document.getElementById("isDelayAutoScrollEnabled").checked = true;
       }
+    }
+    if("fabDisplayMode" in localStorage){
+      document.getElementById("fabDisplayMode").value = localStorage.fabDisplayMode;
+    }else{
+      document.getElementById("fabDisplayMode").value = "auto";
+    }
+    if("touchGestureMode" in localStorage){
+      document.getElementById("touchGestureMode").value = localStorage.touchGestureMode;
+    }else{
+      document.getElementById("touchGestureMode").value = "auto";
+    }
+    if("forceTextSelection" in localStorage){
+      document.getElementById("forceTextSelection").checked = (localStorage.forceTextSelection == "true");
+    }else{
+      document.getElementById("forceTextSelection").checked = false;
     }
   });
 }

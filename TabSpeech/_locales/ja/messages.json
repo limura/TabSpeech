@@ -112,5 +112,38 @@
   },
   "BackgroundJS_CreateOffscreenReasons": {
     "message": "発話をするために利用します。"
+  },
+  "OptionsPageTouchSectionTitle": {
+    "message": "iOS / タブレット等のタッチ操作向け設定"
+  },
+  "OptionsPageFabDisplayModeLabel": {
+    "message": "画面内の読み上げボタン(フローティングボタン)"
+  },
+  "OptionsPageFabModeAuto": {
+    "message": "自動(タッチ端末では表示・PCでは非表示)"
+  },
+  "OptionsPageFabModeAlways": {
+    "message": "常に表示"
+  },
+  "OptionsPageFabModeSelection": {
+    "message": "テキスト選択時のみ表示"
+  },
+  "OptionsPageFabModeHidden": {
+    "message": "表示しない"
+  },
+  "OptionsPageTouchGestureLabel": {
+    "message": "2本指タップで読み上げ開始/停止"
+  },
+  "OptionsPageTouchGestureAuto": {
+    "message": "自動(タッチ端末で有効)"
+  },
+  "OptionsPageTouchGestureOn": {
+    "message": "有効"
+  },
+  "OptionsPageTouchGestureOff": {
+    "message": "無効"
+  },
+  "OptionsPageForceTextSelectionLabel": {
+    "message": "選択できないページでもテキストを選択可能にする"
   }
 }

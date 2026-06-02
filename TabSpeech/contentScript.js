@@ -9,6 +9,7 @@ function getVoiceList() {
 }
 
 function StartSpeechByContentScript(speechText, voiceSetting){
+    //console.log("[TabSpeech] StartSpeechByContentScript: speak on content script. length=", (speechText||"").length, "voices=", window.speechSynthesis.getVoices().length);
     StopSpeech();
     let utterance = new SpeechSynthesisUtterance(speechText);
     utterance.onboundary = function(event){
@@ -31,6 +32,7 @@ function StartSpeechByContentScript(speechText, voiceSetting){
 
 function StartSpeech(text, voiceSetting) {
     autoScrollActive = true;
+    setFabSpeaking(true); // 全ての発話開始(初回・繰り返し・追記継続・Safari直接)がここを通る
     chrome.runtime.sendMessage({
       type: 'StartSpeech',
       speechText: text,
@@ -565,6 +567,9 @@ function SpeechOnBoundary(event){
   }
 }
 function SpeechOnEnd(event){
+  // 一旦「停止」状態にする。onend が繰り返し/追記継続する場合は
+  // 内部で再び StartSpeech() が呼ばれて setFabSpeaking(true) に戻る。
+  setFabSpeaking(false);
   if(speechEventHandlerHolder.onend){
     speechEventHandlerHolder.onend(event);
   }
@@ -705,6 +710,7 @@ chrome.runtime.onMessage.addListener(
     case "StopSpeech":
       isRepeat = false;
       isStopped = true;
+      setFabSpeaking(false);
       StopSpeech();
       break;
     case "PauseSpeech":
@@ -746,9 +752,13 @@ function loadChromeStorageCache(){
   chrome.storage.local.get([
     "startSpeechClickTarget",
     "stopSpeechClickTarget",
-    "isDelayAutoScrollEnabled"
+    "isDelayAutoScrollEnabled",
+    "fabDisplayMode",
+    "touchGestureMode",
+    "forceTextSelection"
   ], (localStorage) => {
     chromeStorageCache = localStorage;
+    initTouchTriggers(); // 設定が読めたのでフローティングボタン等を初期化
   });
 }
 loadChromeStorageCache();
@@ -756,6 +766,7 @@ chrome.storage.onChanged.addListener((changes, namespace)=>{
   for(const [key, {oldValue, newValue}] of Object.entries(changes)){
     chromeStorageCache[key] = newValue;
   }
+  initTouchTriggers(); // オプション変更を即時反映
 });
 
 var mouseDownButtonsCache = 0;
@@ -793,6 +804,225 @@ window.addEventListener("beforeunload", function() {
     chrome.runtime.sendMessage({"type": "onRemoved"}, ()=>{});
   }
 });
+
+// ===========================================================================
+// タッチ端末(iOS / iPadOS の Safari、Firefox for Android 等)向けトリガー
+//   A: ページ内フローティングボタン(FAB) … タップで開始/停止
+//   B: 2本指タップジェスチャ            … タップで開始/停止
+// どちらも「指で触る端末か」で既定の有効/無効を切り替える(PC では既定で出さない)。
+// 設定キー(chrome.storage.local、値はすべて文字列):
+//   fabDisplayMode    : "auto"(既定) | "always" | "selection" | "hidden"
+//   touchGestureMode  : "auto"(既定) | "on" | "off"
+//   forceTextSelection: "true" | "false"(既定)
+// 発話の開始/停止は既存のジェスチャと同じく background へ RunStartSpeech /
+// RunStopSpeech を送るだけ。開始位置は background→KickSpeech 経由で
+// runSpeech() が window.getSelection() を見て決めるので、選択した位置から読める。
+// ===========================================================================
+
+// 粗いポインタ & ホバー不可 = 指で触る端末(iOS/iPadOS/Android 等)。
+function isTouchPrimaryDevice(){
+  return !!(window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches);
+}
+
+function getStoredSetting(key){
+  return chromeStorageCache ? chromeStorageCache[key] : undefined;
+}
+
+// "auto" を端末で解決する。FAB は タッチ端末→常に表示 / PC→非表示。
+function resolveFabMode(){
+  let mode = getStoredSetting("fabDisplayMode");
+  if(!mode || mode === "auto"){
+    return isTouchPrimaryDevice() ? "always" : "hidden";
+  }
+  return mode;
+}
+// 2本指タップは タッチ端末→既定 ON / PC→既定 OFF。
+function resolveTouchGestureEnabled(){
+  let mode = getStoredSetting("touchGestureMode");
+  if(!mode || mode === "auto"){
+    return isTouchPrimaryDevice();
+  }
+  return mode === "on";
+}
+
+var fabIsSpeaking = false;
+var fabHostElement = null;
+var fabButtonElement = null;
+var fabSavedRange = null;
+
+// 現在テキスト選択があるか(空白だけ・折りたたみは無視)。
+function hasMeaningfulSelection(){
+  let sel = window.getSelection();
+  return !!(sel && sel.rangeCount > 0 && !sel.isCollapsed && sel.toString().trim().length > 0);
+}
+
+// 発話状態が変わったら FAB の見た目(▶/■)と表示を更新する。
+function setFabSpeaking(isSpeaking){
+  fabIsSpeaking = isSpeaking;
+  updateFabButton();
+}
+
+// FAB 本体を(まだ無ければ)生成する。ページ CSS の影響を避けるため Shadow DOM に入れ、
+// ボタンのスタイルは CSSOM 経由(= CSP の style-src に弾かれない)で当てる。
+// Shadow DOM 内のテキストは light DOM に出ないので、本文抽出(//body)にも混ざらない。
+function ensureFabCreated(){
+  if(fabHostElement){ return; }
+  if(!document.body){ return; }
+  fabHostElement = document.createElement("div");
+  fabHostElement.id = "tabspeech-fab-host";
+  fabHostElement.style.cssText =
+    "all: initial; position: fixed; z-index: 2147483647;" +
+    "right: env(safe-area-inset-right, 0px); bottom: env(safe-area-inset-bottom, 0px);" +
+    "margin: 0 12px 16px 0; display: none;";
+  let shadow = fabHostElement.attachShadow({mode: "open"});
+  fabButtonElement = document.createElement("button");
+  fabButtonElement.type = "button";
+  fabButtonElement.textContent = "▶"; // ▶
+  fabButtonElement.style.cssText =
+    "all: initial; display: block; box-sizing: border-box;" +
+    "width: 48px; height: 48px; border-radius: 50%; border: none; cursor: pointer;" +
+    "font-family: sans-serif; font-size: 22px; line-height: 48px; text-align: center;" +
+    "color: #fff; background: rgba(0,0,0,0.55); box-shadow: 0 2px 6px rgba(0,0,0,0.3);" +
+    "opacity: 0.85; padding: 0;" +
+    "-webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;";
+
+  // タップで選択が解除されるのに備え、押した瞬間の選択範囲を退避しておく。
+  let saveSelection = function(){
+    fabSavedRange = hasMeaningfulSelection() ? window.getSelection().getRangeAt(0).cloneRange() : null;
+  };
+  // pointerdown は touch/mouse 共通で選択退避に使う(click は阻害しない)。
+  fabButtonElement.addEventListener("pointerdown", function(){ saveSelection(); }, true);
+  // mouse では mousedown を抑止して選択・フォーカス移動を防ぐ(click は発火する)。
+  fabButtonElement.addEventListener("mousedown", function(ev){ saveSelection(); ev.preventDefault(); }, true);
+  fabButtonElement.addEventListener("click", function(ev){
+    ev.preventDefault();
+    ev.stopPropagation();
+    onFabActivated();
+  });
+
+  shadow.appendChild(fabButtonElement);
+  document.body.appendChild(fabHostElement);
+}
+
+// 退避した選択範囲を(現在の選択が失われていたら)復元する。
+function restoreSavedSelection(){
+  if(!fabSavedRange){ return; }
+  if(hasMeaningfulSelection()){ return; } // 生きている選択があればそちらを優先
+  let sel = window.getSelection();
+  sel.removeAllRanges();
+  try { sel.addRange(fabSavedRange); } catch(e){ /* 範囲が無効になっていることがある */ }
+}
+
+// iOS Safari は「ユーザー操作の中で speechSynthesis.speak() を呼ぶ」ことを要求する。
+// FAB/ジェスチャのタップは content script 内のユーザー操作なので、ここで無音の
+// ダミー発話を一度流してエンジンを解錠しておく。実際の発話は background 往復後に
+// 非同期で届くが、同一ドキュメントで一度解錠されていれば許可される(not-allowed 回避)。
+function primeSpeechSynthesis(){
+  try {
+    let u = new SpeechSynthesisUtterance(" ");
+    u.volume = 0;
+    window.speechSynthesis.speak(u);
+    window.speechSynthesis.resume();
+  } catch(e){ /* 古い環境など */ }
+}
+
+function onFabActivated(){
+  if(fabIsSpeaking){
+    chrome.runtime.sendMessage({"type": "RunStopSpeech"});
+  }else{
+    primeSpeechSynthesis(); // iOS: ユーザー操作中に発話エンジンを解錠しておく
+    restoreSavedSelection();
+    chrome.runtime.sendMessage({"type": "RunStartSpeech"});
+  }
+}
+
+// 表示モードと発話/選択状態に応じて FAB を出し分ける。
+// 発話中はハイライトのために選択が頻繁に書き換わる(selectionchange 連発)ので、
+// 値が変わった時だけ DOM を触る。さもないとクリック中に文字ノードが差し替わって
+// 中央のタップが取りこぼされる。
+function updateFabButton(){
+  let mode = resolveFabMode();
+  if(mode === "hidden"){
+    if(fabHostElement && fabHostElement.style.display !== "none"){ fabHostElement.style.display = "none"; }
+    return;
+  }
+  ensureFabCreated();
+  if(!fabButtonElement){ return; }
+  let visible = (mode === "always") || fabIsSpeaking || (mode === "selection" && hasMeaningfulSelection());
+  let display = visible ? "block" : "none";
+  if(fabHostElement.style.display !== display){ fabHostElement.style.display = display; }
+  let label = fabIsSpeaking ? "■" : "▶"; // ■ / ▶
+  if(fabButtonElement.textContent !== label){ fabButtonElement.textContent = label; }
+  let opacity = fabIsSpeaking ? "0.95" : "0.85";
+  if(fabButtonElement.style.opacity !== opacity){ fabButtonElement.style.opacity = opacity; }
+}
+
+// 「選択時のみ表示」モードの時だけ選択変化で出し分ける。
+// always/hidden では選択は表示に影響しないので、発話中のハイライトによる
+// selectionchange 連発で無駄に DOM を触らないようにする。
+document.addEventListener("selectionchange", function(){
+  if(resolveFabMode() === "selection"){ updateFabButton(); }
+});
+
+// --- B: 2本指タップで開始/停止 ---
+var twoFingerState = null;
+function initTouchGesture(){
+  document.addEventListener("touchstart", function(e){
+    if(e.touches.length === 2){
+      twoFingerState = {
+        startTime: performance.now(),
+        moved: false,
+        x0: e.touches[0].clientX, y0: e.touches[0].clientY,
+        x1: e.touches[1].clientX, y1: e.touches[1].clientY,
+      };
+    }else{
+      twoFingerState = null; // 1本/3本以上が混ざったら不成立
+    }
+  }, {passive: true, capture: true});
+  document.addEventListener("touchmove", function(e){
+    if(!twoFingerState || e.touches.length < 2){ return; }
+    let d0 = Math.hypot(e.touches[0].clientX - twoFingerState.x0, e.touches[0].clientY - twoFingerState.y0);
+    let d1 = Math.hypot(e.touches[1].clientX - twoFingerState.x1, e.touches[1].clientY - twoFingerState.y1);
+    if(d0 > 12 || d1 > 12){ twoFingerState.moved = true; } // スクロール/ピンチとみなす
+  }, {passive: true, capture: true});
+  document.addEventListener("touchend", function(e){
+    if(!twoFingerState){ return; }
+    if(e.touches.length === 0){ // 全部離れたら判定
+      let dt = performance.now() - twoFingerState.startTime;
+      if(!twoFingerState.moved && dt < 500 && resolveTouchGestureEnabled()){
+        onFabActivated(); // FAB と同じ開始/停止トグル
+      }
+      twoFingerState = null;
+    }
+  }, {passive: true, capture: true});
+}
+
+// --- 選択を強制的に有効化(選択禁止ページ対策) ---
+var forceSelectStyleElement = null;
+function applyForceTextSelection(){
+  let enabled = getStoredSetting("forceTextSelection") === "true";
+  if(enabled && !forceSelectStyleElement){
+    forceSelectStyleElement = document.createElement("style");
+    forceSelectStyleElement.id = "tabspeech-force-select";
+    forceSelectStyleElement.textContent =
+      "*, *::before, *::after { -webkit-user-select: text !important; user-select: text !important; }";
+    (document.head || document.documentElement).appendChild(forceSelectStyleElement);
+  }else if(!enabled && forceSelectStyleElement){
+    forceSelectStyleElement.remove();
+    forceSelectStyleElement = null;
+  }
+}
+
+// 設定読み込み後・変更時に呼ばれる初期化(ジェスチャ登録は一度きり)。
+var touchGestureInitialized = false;
+function initTouchTriggers(){
+  if(!touchGestureInitialized){
+    initTouchGesture();
+    touchGestureInitialized = true;
+  }
+  updateFabButton();
+  applyForceTextSelection();
+}
 
 //console.log("TabSpeech contentscript loaded.");
 
