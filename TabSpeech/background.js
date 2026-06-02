@@ -1,9 +1,7 @@
 let expireMillisecond = 100 * 60 * 60 * 1;
-//let kotosekaiSiteInfoURL = "http://wedata.net/databases/%E3%81%93%E3%81%A8%E3%81%9B%E3%81%8B%E3%81%84Web%E3%83%9A%E3%83%BC%E3%82%B8%E8%AA%AD%E3%81%BF%E8%BE%BC%E3%81%BF%E7%94%A8%E6%83%85%E5%A0%B1/items.json";
 let kotosekaiSiteInfoTSVURL = "https://docs.google.com/spreadsheets/d/1t2wFx8psbc4EZxlacCas6lknO1S_PW6wsR9Qxq7HEnM/pub?gid=0&single=true&output=tsv";
-//let autopagerizeSiteInfoURL = "http://wedata.net/databases/AutoPagerize/items.json";
-let defaultConvertTableURL = ""//"http://wedata.net/databases/TTS%20Convert%20Table%20for%20Apple%20TTS%20Engine%20(jp)/items.json";
-let defaultRegexpConvertTableURL = ""//"http://wedata.net/databases/TTS%20Regulaer%20Expression%20Convert%20Table%20for%20Apple%20TTS%20Engine%20(jp)/items.json";
+let defaultConvertTableURL = "";
+let defaultRegexpConvertTableURL = "";
 
 function chromeRuntimeSendMessageWrap(opt){
   chrome.runtime.sendMessage(opt, (r) => {
@@ -223,14 +221,6 @@ function SearchSiteInfo(url, siteInfo){
   return result;
 }
 
-var status = "stop";
-function StatusStartSpeech(){
-  //status = "speech";
-}
-function StatusEndSpeech(){
-  //status = "stop";
-}
-
 async function QueryTabIdToUrl(tabId){
   return new Promise(resolve => {
     chrome.tabs.get(tabId, (tab)=>{
@@ -271,12 +261,10 @@ async function RunStartSpeech(tabId, url, kickType){
       "extensionId": localStorage["extensionId"],
     });
   })
-  StatusStartSpeech();
 }
 
 function RunStopSpeech(tabId){
   chromeTabsSendMessageWrap(tabId, {"type": "StopSpeech"});
-  StatusEndSpeech();
 }
 
 function RunPauseSpeech(tabId){
@@ -286,38 +274,6 @@ function RunPauseSpeech(tabId){
 function RunResumeSpeech(tabId){
   chromeTabsSendMessageWrap(tabId, {"type": "ResumeSpeech"});
 }
-
-function KickSpeech(tabId, url){
-  /* TODO: status がいらなそうなので外して試します。いらないなら後で消します。
-  if(status == "speech"){
-    RunStopSpeech(tabId);
-    return;
-  }
-  */
-  RunStartSpeech(tabId, url, "KickSpeech");
-}
-
-chrome.action.onClicked.addListener(function(tab){KickSpeech(tab.id, tab.url);});
-
-function enableActionButton(tabId){
-  chrome.action.enable(tabId);
-}
-
-chrome.tabs.onUpdated.addListener(function(tabId){
-  chrome.tabs.get(tabId).then((tabInfo)=>{
-    let gotTabId = tabInfo?.id;
-    if(gotTabId){
-      enableActionButton(gotTabId);
-    }
-  }).catch(()=>{
-    // nothing to do!
-  })
-  /*chrome.tabs.get(tabId, (tabInfo)=>{
-    if(tabInfo?.id){
-      enableActionButton(tabId);
-    }
-  });*/
-});
 
 function RunInCurrentTab(func){
   if(!func){
@@ -363,99 +319,6 @@ function StartSpeechOnlySelected(){
     RunStartSpeech(tab.id, tab.url, "KickSpeechOnlySelected");
   });
 }
-
-// ServiceWorker 側で発話(window.speechSynthesis ではなく chrome.tts で発話)します。
-// これは window.speechSynthesis(contentScript側)で発話しようとすると、
-// そのタブでキー入力等があった後でないと 'not-allowed' で発話が失敗するため、仕方なく
-// ServiceWorker 側で動かすようにしたものです。
-// そのため、発話の開始時に contentScript 側から ServiceWorker側 を呼び出し、
-// ServiceWorker はその設定で発話と発話周りのイベントハンドルだけを行い、
-// 発生したイベントは contentScript に投げ返すような形で実装しています。
-function RunSpeechOnServiceWorker(tabId, request){
-  let speechText = request.speechText;
-  let options = {};
-  let setting = request.voiceSetting;
-  let lang = setting.lang;
-  if(lang){
-    options.lang = lang;
-  }
-  options.voiceName = setting.voice;
-  options.pitch = Number(setting.pitch);
-  options.rate = Number(setting.rate);
-  options.volume = Number(setting.volume);
-  options.extensionId = setting.extensionId;
-
-  //options.desiredEventTypes = ["word", "start", "end", "error", "sentence", "marker", "interrupted", "cancelled", "pause", "resume"];
-  options.onEvent = (event) => {
-    //console.log("chrome.tts onevent", event);
-    switch(event.type) {
-      case "start":
-        chromeTabsSendMessageWrap(tabId, {
-          type: "SpeechOnServiceWorker_OnStart",
-          event: event,
-        });
-        break;
-      case "end":
-        chromeTabsSendMessageWrap(tabId, {
-          type: "SpeechOnServiceWorker_OnEnd",
-          event: event,
-        });
-        break;
-      case "word":
-        chromeTabsSendMessageWrap(tabId, {
-          type: "SpeechOnServiceWorker_OnBoundary",
-          event: event,
-        });
-        break;
-      case "sentence":
-        chromeTabsSendMessageWrap(tabId, {
-          type: "SpeechOnServiceWorker_OnBoundary",
-          event: event,
-        });
-        break;
-      case "marker":
-        chromeTabsSendMessageWrap(tabId, {
-          type: "SpeechOnServiceWorker_OnBoundary",
-          event: event,
-        });
-        break;
-      case "interrupted":
-        chromeTabsSendMessageWrap(tabId, {
-          type: "SpeechOnServiceWorker_OnEnd",
-          event: event,
-        });
-        break;
-      case "cancelled":
-        chromeTabsSendMessageWrap(tabId, {
-          type: "SpeechOnServiceWorker_OnEnd",
-          event: event,
-        });
-        break;
-      case "error":
-        chromeTabsSendMessageWrap(tabId, {
-          type: "SpeechOnServiceWorker_OnEnd",
-          event: event,
-        });
-        break;
-      case "pause":
-        chromeTabsSendMessageWrap(tabId, {
-          type: "SpeechOnServiceWorker_OnEnd",
-          event: event,
-        });
-        break;
-      case "resume":
-        chromeTabsSendMessageWrap(tabId, {
-          type: "SpeechOnServiceWorker_OnStart",
-          event: event,
-        });
-        break;
-      }
-  };
-  chrome.storage.local.set({currentSpeechTabId: tabId});
-  //console.log("chrome.tts speak", speechText, options);
-  chrome.tts.speak(speechText, options);
-}
-
 
 // https://developer.chrome.com/docs/extensions/reference/api/offscreen?hl=ja のものをそのまま使います
 let offScreenDocumentCreating; // A global promise to avoid concurrency issues
@@ -546,7 +409,6 @@ chrome.runtime.onMessage.addListener(
     case "StartSpeech":
       if(chrome.offscreen) {
         console.log('speech by offscreen.');
-        StatusStartSpeech();
         SendStartSpeechEvent(sender.tab?.id, request['speechText'], request['voiceSetting']);
       }else{
         chromeTabsSendMessageWrap(request.tab.id, {
@@ -558,7 +420,6 @@ chrome.runtime.onMessage.addListener(
       }
       break;
     case "EndSpeech":
-      StatusEndSpeech();
       EndSpeechEventHandler(request);
       break;
 
@@ -577,23 +438,13 @@ chrome.runtime.onMessage.addListener(
     case "KickSpeechRepeatMode":
       StartSpeechRepeatMode();
       break;
-    case "SpeechOnServiceWorker":
-      //console.log("Speech on ServiceWorker", sender, request);
-      RunSpeechOnServiceWorker(sender.tab.id, request);
-      break;
-    case "StopChromeTTS":
-      chrome.storage.local.get(["currentSpeechTabId"], (data)=>{
-        if(sender.tab.id == data.currentSpeechTabId){
-          chrome.tts.stop();
-        }
-      });
-      break;
     case "OnBoundary":
       OnBoundaryEventHandler(request);
       break;
     case "onRemoved":
       //console.log("onRemoved:", sender.tab.id);
       OnRemovedEventHandler(sender.tab.id);
+      break;
     default:
       break;
     }

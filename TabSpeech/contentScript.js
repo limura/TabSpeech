@@ -97,13 +97,6 @@ function GetPageElementArray(SiteInfo){
   return undefined;
 }
 
-function GetNextLink(SiteInfo){
-  if("data" in SiteInfo && "nextLink" in SiteInfo.data){
-    return document.evaluate(SiteInfo.data.pageElement, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-  }
-  return undefined;
-}
-
 let autoScrollActive = 1;
 let autoScrollTimeout = null;
 const PAUSE_DURATION = 4000; // 4秒間スクロールがない場合は自動スクロールを停止する
@@ -200,16 +193,6 @@ function HighlightSpeechSentence(element, index, endElement, endIndex){
 function RemoveHighlightSpeechSentence(){
   //chrome.runtime.sendMessage({"type": "EndSpeech"});
   let selection = window.getSelection();
-}
-
-function StartSpeechEventHandle(element, event){
-  chrome.runtime.sendMessage({"type": "StartSpeech"});
-  HighlightSpeechSentence(element);
-}
-
-function EndSpeechEventHandle(element, event){
-  //chrome.runtime.sendMessage({"type": "EndSpeech"});
-  RemoveHighlightSpeechSentence();
 }
 
 function BoundarySpeechEventHandle(element, event){
@@ -412,9 +395,9 @@ function GenerateWholeText(elementArray, index){
   return text.slice(index);
 }
 
-function checkRepeat(elementArray, nextLink, index, voiceSetting){
+function checkRepeat(elementArray, index, voiceSetting){
   if(isRepeat){
-    SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting);
+    SpeechWithPageElementArray(elementArray, index, voiceSetting);
     return true;
   }
   return false;
@@ -593,7 +576,7 @@ function SpeechOnEnd(event){
   }
 }
 
-function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting, SiteInfo, maxLength = -1){
+function SpeechWithPageElementArray(elementArray, index, voiceSetting, SiteInfo, maxLength = -1){
   StopSpeech();
   let wholeText = GenerateWholeText(elementArray, 0);
   let text = GenerateWholeText(elementArray, index);
@@ -607,9 +590,7 @@ function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting,
   if(maxLength > 0){
     speechText = speechText.substring(0, maxLength);
   }
-  let utterance = new SpeechSynthesisUtterance(speechText);
-  speechEventHandlerHolder.onboundary =
-  utterance.onboundary = function(event){
+  speechEventHandlerHolder.onboundary = function(event){
     //console.log("SpeechSynthesisUtterance Event onBoundary", event.charIndex, event);
     let displayTextIndex = SpeechTextIndexToDisplayTextIndex(speechTextHints, event.charIndex);
     let elementData = SearchElementFromIndex(elementArray, displayTextIndex + index);
@@ -630,18 +611,16 @@ function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting,
     }
     BoundarySpeechEventHandle(elementArray, event);
   };
-  speechEventHandlerHolder.onstart =
-  utterance.onstart = function(event){
+  speechEventHandlerHolder.onstart = function(event){
     //console.log("SpeechSynthesisUtterance Event onStart", event);
     //chrome.runtime.sendMessage({"type": "StartSpeech"});
   };
-  speechEventHandlerHolder.onend =
-  utterance.onend = function(event){
+  speechEventHandlerHolder.onend = function(event){
     //console.log("SpeechSynthesisUtterance Event onEnd", event);
     RemoveHighlightSpeechSentence();
     //chrome.runtime.sendMessage({"type": "EndSpeech"});
 
-    if(checkRepeat(elementArray, nextLink, index, voiceSetting)){
+    if(checkRepeat(elementArray, index, voiceSetting)){
       return;
     }
 
@@ -649,37 +628,22 @@ function SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting,
     if(!isStopped && isAutopagerizeContinueEnabled == "true"){
       let result = CheckAutopagerizedContentAlive(SiteInfo, wholeText);
       if(result.hasNewContent){
-        SpeechWithPageElementArray(result.elementArray, nextLink, result.index, voiceSetting, SiteInfo);
+        SpeechWithPageElementArray(result.elementArray, result.index, voiceSetting, SiteInfo);
       }
       return;
     }
   };
-  speechEventHandlerHolder.onerror =
-  utterance.onerror = function(event){console.log("SpeechSynthesisUtterance Event onError", event);};
-  speechEventHandlerHolder.onmark =
-  utterance.onmark = function(event){console.log("SpeechSynthesisUtterance Event onMark", event);};
-  speechEventHandlerHolder.onpause =
-  utterance.onpause = function(event){console.log("SpeechSynthesisUtterance Event onPause", event);};
-  speechEventHandlerHolder.onresume =
-  utterance.onresume = function(event){console.log("SpeechSynthesisUtterance Event onResume", event);};
-  ApplyVoiceSetting(utterance, voiceSetting);
+  speechEventHandlerHolder.onerror = function(event){console.log("SpeechSynthesisUtterance Event onError", event);};
+  speechEventHandlerHolder.onmark = function(event){console.log("SpeechSynthesisUtterance Event onMark", event);};
+  speechEventHandlerHolder.onpause = function(event){console.log("SpeechSynthesisUtterance Event onPause", event);};
+  speechEventHandlerHolder.onresume = function(event){console.log("SpeechSynthesisUtterance Event onResume", event);};
   //console.log("speech", text);
-  if(chrome && false){
-    chrome.runtime.sendMessage({
-      type: "SpeechOnServiceWorker",
-      speechText: speechText,
-      voiceSetting: voiceSetting,
-    });
-  }else{
-    //speechSynthesis.speak(utterance);
-    StartSpeech(utterance.text, voiceSetting);
-  }
+  StartSpeech(speechText, voiceSetting);
   return true;
 }
 
 function runSpeechWithSiteInfo(SiteInfo, voiceSetting, isSpeechSelectionOnly){
   var elementArray = extractElementForPageElementArray(GetPageElementArray(SiteInfo));
-  let nextLink = GetNextLink(SiteInfo);
   //console.log("SiteInfo", SiteInfo, "elementArray", elementArray);
   let selection = window.getSelection();
   var index = 0;
@@ -698,7 +662,7 @@ function runSpeechWithSiteInfo(SiteInfo, voiceSetting, isSpeechSelectionOnly){
       maxLength = selection.toString().length
     }
   }
-  if(index >= 0 && elementArray && SpeechWithPageElementArray(elementArray, nextLink, index, voiceSetting, SiteInfo, maxLength)){
+  if(index >= 0 && elementArray && SpeechWithPageElementArray(elementArray, index, voiceSetting, SiteInfo, maxLength)){
     return true;
   }
   return false;
@@ -780,12 +744,6 @@ chrome.runtime.onMessage.addListener(
     sendResponse();
   }
 );
-
-/*
-window.addEventListener('beforeunload', event => {
-  chrome.runtime.sendMessage({"type": "StopChromeTTS"});
-});
-*/
 
 function isValidClickTarget(targetNumber){
   switch(targetNumber){
