@@ -265,14 +265,19 @@ async function RunStartSpeech(tabId, url, kickType){
 
 function RunStopSpeech(tabId){
   chromeTabsSendMessageWrap(tabId, {"type": "StopSpeech"});
+  // 発話は offscreen 側で行われているため、content script への cancel だけでは止まらない。
+  // offscreen を閉じれば、その speechSynthesis ごと破棄されて発話も止まる。
+  closeOffscreenDocumentIfExists();
 }
 
 function RunPauseSpeech(tabId){
   chromeTabsSendMessageWrap(tabId, {"type": "PauseSpeech"});
+  sendMessageToOffscreenIfExists({type: "PauseSpeech", target: "offscreen"});
 }
 
 function RunResumeSpeech(tabId){
   chromeTabsSendMessageWrap(tabId, {"type": "ResumeSpeech"});
+  sendMessageToOffscreenIfExists({type: "ResumeSpeech", target: "offscreen"});
 }
 
 function RunInCurrentTab(func){
@@ -351,6 +356,32 @@ async function setupOffscreenDocument(path) {
 }
 
 let speechHtmlPath = "speechSynthesis.html";
+
+// offscreen ドキュメント(speechSynthesis.html)が今あるかどうか
+async function hasOffscreenDocument() {
+  if (!chrome.offscreen) { return false; }
+  const offscreenUrl = chrome.runtime.getURL(speechHtmlPath);
+  const existingContexts = await chrome.runtime.getContexts({
+    contextTypes: ['OFFSCREEN_DOCUMENT'],
+    documentUrls: [offscreenUrl]
+  });
+  return existingContexts.length > 0;
+}
+
+// offscreen がある時だけ閉じる(閉じれば offscreen 側の発話も止まる)
+async function closeOffscreenDocumentIfExists() {
+  if (await hasOffscreenDocument()) {
+    chrome.offscreen.closeDocument();
+  }
+}
+
+// offscreen がある時だけメッセージを送る(無い時にわざわざ作らない)
+async function sendMessageToOffscreenIfExists(message) {
+  if (await hasOffscreenDocument()) {
+    chrome.runtime.sendMessage(message, () => chrome.runtime.lastError);
+  }
+}
+
 async function SendStartSpeechEvent(tabId, text, voiceSetting) {
   //console.log("SendStartSpeechEvent:", tabId, text, voiceSetting);
   await setupOffscreenDocument(speechHtmlPath);
@@ -380,22 +411,13 @@ async function EndSpeechEventHandler(request){
   });
 
   // 読み上げが停止したので offscreen は消しておく
-  const offscreenUrl = chrome.runtime.getURL(speechHtmlPath);
-  const existingContexts = await chrome.runtime.getContexts({
-    contextTypes: ['OFFSCREEN_DOCUMENT'],
-    documentUrls: [offscreenUrl]
-  });
-
-  if (existingContexts.length <= 0) {
-    return;
-  }
-  //console.log("EndSpeechEventHandler: offscreen.closeDocument()");
-  chrome.offscreen.closeDocument();
+  await closeOffscreenDocumentIfExists();
 }
 
 async function OnRemovedEventHandler(tabId) {
-  await setupOffscreenDocument(speechHtmlPath);
-  chromeRuntimeSendMessageWrap({
+  // 発話中のタブが閉じられた場合に offscreen 側の発話を止めるための通知。
+  // offscreen が無い(=何も発話していない)時にわざわざ作る必要はない。
+  sendMessageToOffscreenIfExists({
     type: 'TabClosed',
     target: 'offscreen',
     tabId: tabId,
@@ -411,7 +433,7 @@ chrome.runtime.onMessage.addListener(
         console.log('speech by offscreen.');
         SendStartSpeechEvent(sender.tab?.id, request['speechText'], request['voiceSetting']);
       }else{
-        chromeTabsSendMessageWrap(request.tab.id, {
+        chromeTabsSendMessageWrap(sender.tab?.id, {
             type: 'StartSpeech-force-speech-on-contentScript',
             speechText: request['speechText'],
             voiceSetting: request['voiceSetting'],

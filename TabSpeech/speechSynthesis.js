@@ -31,6 +31,14 @@ function StopSpeech() {
     speechSynthesis.cancel();
 }
 
+function PauseSpeech() {
+    speechSynthesis.pause();
+}
+
+function ResumeSpeech() {
+    speechSynthesis.resume();
+}
+
 var currentSpeechTabId = undefined;
 function OnRemovedEventHandler(tabId) {
     if(currentSpeechTabId == tabId) {
@@ -68,6 +76,12 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             break;
         case "StopSpeech":
             StopSpeech();
+            break;
+        case "PauseSpeech":
+            PauseSpeech();
+            break;
+        case "ResumeSpeech":
+            ResumeSpeech();
             break;
         case "TabClosed":
             OnRemovedEventHandler(request.tabId);
