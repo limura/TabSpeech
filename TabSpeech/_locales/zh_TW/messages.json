@@ -146,6 +146,9 @@
   "OptionsPageForceTextSelectionLabel": {
     "message": "在禁止選取的頁面上也允許選取文字"
   },
+  "OptionsPageForceTextSelectionNote": {
+    "message": "※ 對透過 CSS 禁止選取的頁面有效,但對透過 JavaScript 等方式禁止選取的頁面可能無效。"
+  },
   "OptionsPageTouchGestureNote": {
     "message": "※ 可能與其他雙指操作(地圖縮小、VoiceOver / TalkBack 等輔助使用操作)衝突。"
   },

@@ -146,6 +146,9 @@
   "OptionsPageForceTextSelectionLabel": {
     "message": "Allow text selection even on pages that block it"
   },
+  "OptionsPageForceTextSelectionNote": {
+    "message": "* Works for pages that block selection via CSS, but has no effect on pages that block it via JavaScript, etc."
+  },
   "OptionsPageTouchGestureNote": {
     "message": "* May conflict with other two-finger gestures (zooming out on maps, accessibility gestures such as VoiceOver / TalkBack)."
   },

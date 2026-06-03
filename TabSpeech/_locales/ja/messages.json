@@ -146,6 +146,9 @@
   "OptionsPageForceTextSelectionLabel": {
     "message": "選択できないページでもテキストを選択可能にする"
   },
+  "OptionsPageForceTextSelectionNote": {
+    "message": "※ CSS で選択を禁止しているページには有効ですが、JavaScript で選択を打ち消しているページなど、効果のない場合があります。"
+  },
   "OptionsPageTouchGestureNote": {
     "message": "※ 他の2本指操作(地図のズームアウト、VoiceOver / TalkBack などのアクセシビリティ操作)と干渉する可能性があります。"
   },
