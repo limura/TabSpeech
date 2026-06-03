@@ -145,5 +145,11 @@
   },
   "OptionsPageForceTextSelectionLabel": {
     "message": "在禁止选择的页面上也允许选择文本"
+  },
+  "OptionsPageTouchGestureNote": {
+    "message": "※ 可能与其他双指操作(地图缩小、VoiceOver / TalkBack 等无障碍操作)冲突。"
+  },
+  "ContentNoReadableTextMessage": {
+    "message": "未找到可朗读的文本。"
   }
 }

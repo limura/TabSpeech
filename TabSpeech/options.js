@@ -323,7 +323,7 @@ function loadSettings(voices){
     if("touchGestureMode" in localStorage){
       document.getElementById("touchGestureMode").value = localStorage.touchGestureMode;
     }else{
-      document.getElementById("touchGestureMode").value = "auto";
+      document.getElementById("touchGestureMode").value = "off"; // 標準OFF(他ジェスチャとの競合回避)
     }
     if("forceTextSelection" in localStorage){
       document.getElementById("forceTextSelection").checked = (localStorage.forceTextSelection == "true");

@@ -145,5 +145,11 @@
   },
   "OptionsPageForceTextSelectionLabel": {
     "message": "選択できないページでもテキストを選択可能にする"
+  },
+  "OptionsPageTouchGestureNote": {
+    "message": "※ 他の2本指操作(地図のズームアウト、VoiceOver / TalkBack などのアクセシビリティ操作)と干渉する可能性があります。"
+  },
+  "ContentNoReadableTextMessage": {
+    "message": "読み上げられるテキストが見つかりませんでした。"
   }
 }

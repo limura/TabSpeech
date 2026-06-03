@@ -8,31 +8,43 @@ function getVoiceList() {
   return voices;
 }
 
+// getVoices() は初回(ページ読み込み直後)に空のことがある。空のまま speak すると
+// 指定の声が当たらず既定の声(別人)で発話されてしまうため、声が揃ってから speak する。
+function speakWhenVoicesReady(doSpeak){
+    let voices = speechSynthesis.getVoices();
+    if(voices && voices.length){ doSpeak(); return; }
+    var fired = false;
+    let go = function(){ if(fired){ return; } fired = true; doSpeak(); };
+    try { speechSynthesis.addEventListener('voiceschanged', go, {once: true}); } catch(e){}
+    speechSynthesis.getVoices(); // ロードを促す
+    setTimeout(go, 1500);        // voiceschanged が来ない環境向けフォールバック
+}
+
 function StartSpeechByContentScript(speechText, voiceSetting){
-    //console.log("[TabSpeech] StartSpeechByContentScript: speak on content script. length=", (speechText||"").length, "voices=", window.speechSynthesis.getVoices().length);
     StopSpeech();
-    let utterance = new SpeechSynthesisUtterance(speechText);
-    utterance.onboundary = function(event){
-        SpeechOnBoundary(event);
-    };
-    utterance.onstart = function(event){
-      //chrome.runtime.sendMessage({"type": "StartSpeech", "event": event, "tabId": tabId });
-    };
-    utterance.onend = function(event){
-        SpeechOnEnd(event);
-    };
-    utterance.onerror = function(event){console.log("SpeechSynthesisUtterance Event onError", event);};
-    utterance.onmark = function(event){console.log("SpeechSynthesisUtterance Event onMark", event);};
-    utterance.onpause = function(event){console.log("SpeechSynthesisUtterance Event onPause", event);};
-    utterance.onresume = function(event){console.log("SpeechSynthesisUtterance Event onResume", event);};
-    ApplyVoiceSetting(utterance, voiceSetting);
-    //currentSpeechTabId = tabId;
-    speechSynthesis.speak(utterance);
+    speakWhenVoicesReady(function(){
+      let utterance = new SpeechSynthesisUtterance(speechText);
+      utterance.onboundary = function(event){
+          SpeechOnBoundary(event);
+      };
+      utterance.onstart = function(event){
+        // onstart は iOS では実音声より早く来るため FAB 状態には使わない(最初の onboundary で切替)。
+      };
+      utterance.onend = function(event){
+          SpeechOnEnd(event);
+      };
+      utterance.onerror = function(event){console.log("SpeechSynthesisUtterance Event onError", event);};
+      utterance.onmark = function(event){console.log("SpeechSynthesisUtterance Event onMark", event);};
+      utterance.onpause = function(event){console.log("SpeechSynthesisUtterance Event onPause", event);};
+      utterance.onresume = function(event){console.log("SpeechSynthesisUtterance Event onResume", event);};
+      ApplyVoiceSetting(utterance, voiceSetting);
+      speechSynthesis.speak(utterance);
+    });
 }
 
 function StartSpeech(text, voiceSetting) {
     autoScrollActive = true;
-    setFabSpeaking(true); // 全ての発話開始(初回・繰り返し・追記継続・Safari直接)がここを通る
+    setFabState("preparing"); // 発話を依頼した段階。実際に始まったら onstart で "speaking" にする
     chrome.runtime.sendMessage({
       type: 'StartSpeech',
       speechText: text,
@@ -72,6 +84,7 @@ function CreateVoiceSetting(lang, voice, pitch, rate, volume, isScrollEnabled, i
 
 function ApplyVoiceSetting(utterance, voiceSetting){
   if(voiceSetting.lang){
+    utterance.lang = voiceSetting.lang; // 指定の声が見つからない場合でも言語だけは合わせる
     let voiceArray = getVoiceList();
     for(voice of voiceArray){
       if(voice.lang == voiceSetting.lang && voiceSetting.voice && voice.name == voiceSetting.voice){
@@ -562,14 +575,17 @@ function GetScrollRatio(voiceSetting) {
 
 let speechEventHandlerHolder = {};
 function SpeechOnBoundary(event){
+  // 最初の boundary = 実際に音声が出始めた合図(onstart は iOS で早すぎるため使わない)。
+  // ここで「準備中スピナー」→「停止(■)」表示へ切り替える。
+  if(fabState === "preparing"){ setFabState("speaking"); }
   if(speechEventHandlerHolder.onboundary){
     speechEventHandlerHolder.onboundary(event);
   }
 }
 function SpeechOnEnd(event){
-  // 一旦「停止」状態にする。onend が繰り返し/追記継続する場合は
-  // 内部で再び StartSpeech() が呼ばれて setFabSpeaking(true) に戻る。
-  setFabSpeaking(false);
+  // 一旦「停止(idle)」状態にする。onend が繰り返し/追記継続する場合は
+  // 内部で再び StartSpeech() が呼ばれて "preparing" に戻る。
+  setFabState("idle");
   if(speechEventHandlerHolder.onend){
     speechEventHandlerHolder.onend(event);
   }
@@ -589,6 +605,16 @@ function SpeechWithPageElementArray(elementArray, index, voiceSetting, SiteInfo,
   if(maxLength > 0){
     speechText = speechText.substring(0, maxLength);
   }
+  // Safari は発話テキストに改行が含まれると onboundary の charIndex が 0 のまま進まず、
+  // ハイライトが先頭固定になる。改行・タブを「1文字=1スペース」で置換して回避する
+  // (長さ・各文字位置が変わらないので、ハイライトの index マッピングは保たれる)。
+  speechText = speechText.replace(/[\r\n\t]/g, " ");
+  // Safari は ①②③… のような囲み数字が含まれると onboundary の charIndex が壊れ、
+  // 0 のまま進まずハイライトが先頭固定になる。①〜⑨ を同じ長さの 1〜9 に置換して回避する
+  // (表示は元のまま・発話テキストのみ。長さ保持なのでハイライトの index マッピングも保たれる)。
+  speechText = speechText.replace(/[①-⑨]/g, function(ch){
+    return String(ch.charCodeAt(0) - 0x2460 + 1);
+  });
   speechEventHandlerHolder.onboundary = function(event){
     //console.log("SpeechSynthesisUtterance Event onBoundary", event.charIndex, event);
     let displayTextIndex = SpeechTextIndexToDisplayTextIndex(speechTextHints, event.charIndex);
@@ -663,17 +689,18 @@ function runSpeechWithSiteInfo(SiteInfo, voiceSetting, isSpeechSelectionOnly){
   return false;
 }
 
+// 発話を開始できたら true、読み上げ対象テキストが見つからなければ false を返す。
 function runSpeech(SiteInfoArray, voiceSetting, isSpeechSelectionOnly){
   //console.log("runSpeech calling", SiteInfoArray, voiceSetting);
   for(var i = 0; i < SiteInfoArray.length; i++){
     let SiteInfo = SiteInfoArray[i];
     if(runSpeechWithSiteInfo(SiteInfo, voiceSetting, isSpeechSelectionOnly)){
-      return;
+      return true;
     }
   };
   //console.log("runSpeech no SiteInfo hit", SiteInfoArray);
   let dummySiteInfo = {"data":{"pageElement": "*", "url": "^https?://"}};
-  runSpeechWithSiteInfo(dummySiteInfo, voiceSetting, isSpeechSelectionOnly);
+  return runSpeechWithSiteInfo(dummySiteInfo, voiceSetting, isSpeechSelectionOnly);
 }
 
 chrome.runtime.onMessage.addListener(
@@ -683,34 +710,34 @@ chrome.runtime.onMessage.addListener(
     case "KickSpeech":
       isStopped = false;
       console.log("KickSpeech", message);
-      runSpeech(
+      notifyIfNothingToSpeak(runSpeech(
         message.SiteInfoArray.concat([{"data":{"pageElement": "//body", "nextLink": "", "url": ".*"}}]),
         CreateVoiceSettingFromMessage(message),
 	      false
-      );
+      ));
       break;
     case "KickSpeechRepeatMode":
       isRepeat = true;
       isStopped = false;
-      runSpeech(
+      notifyIfNothingToSpeak(runSpeech(
         message.SiteInfoArray.concat([{"data":{"pageElement": "//body", "nextLink": "", "url": ".*"}}]),
         CreateVoiceSettingFromMessage(message),
 	      false
-      );
+      ));
       break;
     case "KickSpeechOnlySelected":
       isStopped = false;
       console.log("KickSpeechOnlySelected", message);
-      runSpeech(
+      notifyIfNothingToSpeak(runSpeech(
         message.SiteInfoArray.concat([{"data":{"pageElement": "//body", "nextLink": "", "url": ".*"}}]),
         CreateVoiceSettingFromMessage(message),
 	      true
-      );
+      ));
       break;
     case "StopSpeech":
       isRepeat = false;
       isStopped = true;
-      setFabSpeaking(false);
+      setFabState("idle");
       StopSpeech();
       break;
     case "PauseSpeech":
@@ -755,7 +782,8 @@ function loadChromeStorageCache(){
     "isDelayAutoScrollEnabled",
     "fabDisplayMode",
     "touchGestureMode",
-    "forceTextSelection"
+    "forceTextSelection",
+    "fabPosition"
   ], (localStorage) => {
     chromeStorageCache = localStorage;
     initTouchTriggers(); // 設定が読めたのでフローティングボタン等を初期化
@@ -836,19 +864,23 @@ function resolveFabMode(){
   }
   return mode;
 }
-// 2本指タップは タッチ端末→既定 ON / PC→既定 OFF。
+// 2本指タップは標準 OFF。地図のズームアウトや VoiceOver/TalkBack 等と競合しうるため、
+// 明示的に有効化した人だけに使わせる("auto" を選ぶとタッチ端末でのみ有効)。
 function resolveTouchGestureEnabled(){
   let mode = getStoredSetting("touchGestureMode");
-  if(!mode || mode === "auto"){
-    return isTouchPrimaryDevice();
-  }
-  return mode === "on";
+  if(mode === "on"){ return true; }
+  if(mode === "auto"){ return isTouchPrimaryDevice(); }
+  return false; // 未設定 / "off" は無効(標準 OFF)
 }
 
-var fabIsSpeaking = false;
+var fabState = "idle"; // "idle"(▶) | "preparing"(準備中スピナー) | "speaking"(■)
 var fabHostElement = null;
 var fabButtonElement = null;
+var fabHandleElement = null;
+var fabIconSvg = null;
 var fabSavedRange = null;
+var fabDragState = null;
+var fabCustomPositioned = false;
 
 // 現在テキスト選択があるか(空白だけ・折りたたみは無視)。
 function hasMeaningfulSelection(){
@@ -856,10 +888,70 @@ function hasMeaningfulSelection(){
   return !!(sel && sel.rangeCount > 0 && !sel.isCollapsed && sel.toString().trim().length > 0);
 }
 
-// 発話状態が変わったら FAB の見た目(▶/■)と表示を更新する。
-function setFabSpeaking(isSpeaking){
-  fabIsSpeaking = isSpeaking;
-  updateFabButton();
+// FAB の状態(idle/preparing/speaking)を切り替え、見た目を更新する。
+// preparing 中はスピナー(ぐるぐる)を回し、実際に発話が始まったら(onstart 受信で)
+// speaking(■)へ。これで「停止ボタンなのに無音」という見かけ上の食い違いを無くす。
+var fabPrepareFallbackTimer = null;
+function setFabState(state){
+  fabState = state;
+  updateFabButton();                                   // ボタン生成・表示の更新
+  renderFabIcon(state);                                // アイコン(再生/停止/スピナー弧)を描画
+  if(fabPrepareFallbackTimer){ clearTimeout(fabPrepareFallbackTimer); fabPrepareFallbackTimer = null; }
+  if(state === "preparing"){
+    startFabSpinner();                                 // 準備中スピナー(弧を回転)開始
+    // 保険: onboundary を返さないボイス/ページでもスピナーが回り続けないよう、
+    // 一定時間で「発話中」に切り替える(通常は最初の boundary の方が先に来る)。
+    fabPrepareFallbackTimer = setTimeout(function(){
+      if(fabState === "preparing"){ setFabState("speaking"); }
+    }, 15000);
+  }else{
+    stopFabSpinner();
+  }
+}
+
+// アイコンは文字(▶/■)だと環境差が大きい(iOS は ▶ が絵文字化、mac は ■ が極小)ため、
+// インライン SVG で自前描画して全プラットフォームで同じ見た目にする。
+// SVG は DOM(createElementNS)で組み立てるので CSP の影響も受けない。
+var SVG_NS = "http://www.w3.org/2000/svg";
+function renderFabIcon(state){
+  if(!fabIconSvg){ return; }
+  while(fabIconSvg.firstChild){ fabIconSvg.removeChild(fabIconSvg.firstChild); }
+  fabIconSvg.style.transform = ""; // スピナー回転をリセット
+  if(state === "speaking"){
+    let rect = document.createElementNS(SVG_NS, "rect");
+    rect.setAttribute("x", "6"); rect.setAttribute("y", "6");
+    rect.setAttribute("width", "12"); rect.setAttribute("height", "12");
+    rect.setAttribute("rx", "2"); rect.setAttribute("fill", "#fff");
+    fabIconSvg.appendChild(rect);
+  }else if(state === "preparing"){
+    let circle = document.createElementNS(SVG_NS, "circle");
+    circle.setAttribute("cx", "12"); circle.setAttribute("cy", "12"); circle.setAttribute("r", "8");
+    circle.setAttribute("fill", "none"); circle.setAttribute("stroke", "#fff");
+    circle.setAttribute("stroke-width", "3"); circle.setAttribute("stroke-linecap", "round");
+    circle.setAttribute("stroke-dasharray", "13 100"); // 短い弧(これを回転させてスピナーにする)
+    fabIconSvg.appendChild(circle);
+  }else{ // idle = 再生(右向き三角)
+    let tri = document.createElementNS(SVG_NS, "polygon");
+    tri.setAttribute("points", "8,5 19,12 8,19");
+    tri.setAttribute("fill", "#fff");
+    fabIconSvg.appendChild(tri);
+  }
+}
+
+var fabSpinnerTimer = null;
+var fabSpinnerDeg = 0;
+function startFabSpinner(){
+  fabSpinnerDeg = 0;
+  if(fabSpinnerTimer){ return; }
+  fabSpinnerTimer = setInterval(function(){
+    if(fabState !== "preparing" || !fabIconSvg){ return; }
+    fabSpinnerDeg = (fabSpinnerDeg + 30) % 360;
+    fabIconSvg.style.transform = "rotate(" + fabSpinnerDeg + "deg)";
+  }, 80);
+}
+function stopFabSpinner(){
+  if(fabSpinnerTimer){ clearInterval(fabSpinnerTimer); fabSpinnerTimer = null; }
+  if(fabIconSvg){ fabIconSvg.style.transform = ""; }
 }
 
 // FAB 本体を(まだ無ければ)生成する。ページ CSS の影響を避けるため Shadow DOM に入れ、
@@ -875,16 +967,40 @@ function ensureFabCreated(){
     "right: env(safe-area-inset-right, 0px); bottom: env(safe-area-inset-bottom, 0px);" +
     "margin: 0 12px 16px 0; display: none;";
   let shadow = fabHostElement.attachShadow({mode: "open"});
+
+  // つまみ と 発話ボタン を横並びにするラッパ。
+  let wrap = document.createElement("div");
+  wrap.style.cssText = "all: initial; display: flex; align-items: center; gap: 4px;";
+
+  // ドラッグ用つまみ。ここを摘んだ時だけ移動する(発話はしない)ので、
+  // 「タップ=発話 / つまみ=移動」が物理的に分離され、誤操作が起きない。
+  fabHandleElement = document.createElement("div");
+  fabHandleElement.textContent = "⠿";
+  fabHandleElement.setAttribute("aria-hidden", "true");
+  fabHandleElement.style.cssText =
+    "all: initial; display: flex; align-items: center; justify-content: center; box-sizing: border-box;" +
+    "width: 22px; height: 36px; border-radius: 6px; cursor: grab; touch-action: none;" +
+    "font-family: sans-serif; font-size: 16px; line-height: 1; color: #fff;" +
+    "background: rgba(0,0,0,0.4); box-shadow: 0 2px 6px rgba(0,0,0,0.25); opacity: 0.7;" +
+    "-webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;";
+  fabHandleElement.addEventListener("pointerdown", onFabHandlePointerDown);
+
   fabButtonElement = document.createElement("button");
   fabButtonElement.type = "button";
-  fabButtonElement.textContent = "▶"; // ▶
   fabButtonElement.style.cssText =
-    "all: initial; display: block; box-sizing: border-box;" +
+    "all: initial; display: flex; align-items: center; justify-content: center; box-sizing: border-box;" +
     "width: 48px; height: 48px; border-radius: 50%; border: none; cursor: pointer;" +
-    "font-family: sans-serif; font-size: 22px; line-height: 48px; text-align: center;" +
     "color: #fff; background: rgba(0,0,0,0.55); box-shadow: 0 2px 6px rgba(0,0,0,0.3);" +
     "opacity: 0.85; padding: 0;" +
     "-webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;";
+  // 自前描画の SVG アイコン(再生/停止/スピナー)。文字グリフの環境差を回避する。
+  fabIconSvg = document.createElementNS(SVG_NS, "svg");
+  fabIconSvg.setAttribute("viewBox", "0 0 24 24");
+  fabIconSvg.setAttribute("width", "22");
+  fabIconSvg.setAttribute("height", "22");
+  fabIconSvg.style.display = "block";
+  fabButtonElement.appendChild(fabIconSvg);
+  renderFabIcon(fabState);
 
   // タップで選択が解除されるのに備え、押した瞬間の選択範囲を退避しておく。
   let saveSelection = function(){
@@ -900,9 +1016,84 @@ function ensureFabCreated(){
     onFabActivated();
   });
 
-  shadow.appendChild(fabButtonElement);
+  wrap.appendChild(fabHandleElement);
+  wrap.appendChild(fabButtonElement);
+  shadow.appendChild(wrap);
   document.body.appendChild(fabHostElement);
+  restoreFabPosition(); // 前回ドラッグした位置があれば復元
 }
+
+// FAB を viewport 内にクランプしつつ left/top で配置する(ドラッグ移動・復元の共通処理)。
+function applyFabPosition(left, top){
+  if(!fabHostElement){ return; }
+  let rect = fabHostElement.getBoundingClientRect();
+  let w = rect.width || 80;
+  let h = rect.height || 48;
+  let maxLeft = Math.max(0, window.innerWidth - w);
+  let maxTop = Math.max(0, window.innerHeight - h);
+  left = Math.min(Math.max(0, left), maxLeft);
+  top = Math.min(Math.max(0, top), maxTop);
+  // 既定の right/bottom/margin 配置をやめて left/top 絶対配置に切り替える。
+  fabHostElement.style.right = "auto";
+  fabHostElement.style.bottom = "auto";
+  fabHostElement.style.margin = "0";
+  fabHostElement.style.left = left + "px";
+  fabHostElement.style.top = top + "px";
+  fabCustomPositioned = true;
+}
+
+function restoreFabPosition(){
+  let raw = getStoredSetting("fabPosition");
+  if(!raw){ return; }
+  try {
+    let p = JSON.parse(raw);
+    if(typeof p.left === "number" && typeof p.top === "number"){
+      applyFabPosition(p.left, p.top);
+    }
+  } catch(e){ /* 壊れた値は無視 */ }
+}
+
+function onFabHandlePointerDown(ev){
+  if(!fabHostElement){ return; }
+  ev.preventDefault();
+  ev.stopPropagation();
+  let rect = fabHostElement.getBoundingClientRect();
+  fabDragState = {
+    pointerId: ev.pointerId,
+    offsetX: ev.clientX - rect.left,
+    offsetY: ev.clientY - rect.top,
+  };
+  fabHandleElement.style.cursor = "grabbing";
+  try { fabHandleElement.setPointerCapture(ev.pointerId); } catch(e){}
+  fabHandleElement.addEventListener("pointermove", onFabHandlePointerMove);
+  fabHandleElement.addEventListener("pointerup", onFabHandlePointerUp);
+  fabHandleElement.addEventListener("pointercancel", onFabHandlePointerUp);
+}
+
+function onFabHandlePointerMove(ev){
+  if(!fabDragState){ return; }
+  applyFabPosition(ev.clientX - fabDragState.offsetX, ev.clientY - fabDragState.offsetY);
+}
+
+function onFabHandlePointerUp(ev){
+  if(!fabDragState){ return; }
+  try { fabHandleElement.releasePointerCapture(fabDragState.pointerId); } catch(e){}
+  fabHandleElement.removeEventListener("pointermove", onFabHandlePointerMove);
+  fabHandleElement.removeEventListener("pointerup", onFabHandlePointerUp);
+  fabHandleElement.removeEventListener("pointercancel", onFabHandlePointerUp);
+  fabHandleElement.style.cursor = "grab";
+  fabDragState = null;
+  let rect = fabHostElement.getBoundingClientRect();
+  chrome.storage.local.set({ fabPosition: JSON.stringify({left: rect.left, top: rect.top}) });
+}
+
+// 画面回転・リサイズで FAB が画面外に出ないよう、独自位置のときは再クランプする。
+window.addEventListener("resize", function(){
+  if(fabCustomPositioned && fabHostElement){
+    let rect = fabHostElement.getBoundingClientRect();
+    applyFabPosition(rect.left, rect.top);
+  }
+});
 
 // 退避した選択範囲を(現在の選択が失われていたら)復元する。
 function restoreSavedSelection(){
@@ -927,19 +1118,25 @@ function primeSpeechSynthesis(){
 }
 
 function onFabActivated(){
-  if(fabIsSpeaking){
+  if(fabState !== "idle"){
+    // 準備中 or 発話中はどちらも停止扱い(準備中の取り消しも含む)。
     chrome.runtime.sendMessage({"type": "RunStopSpeech"});
   }else{
     primeSpeechSynthesis(); // iOS: ユーザー操作中に発話エンジンを解錠しておく
     restoreSavedSelection();
+    // 押した瞬間に「準備中(スピナー)」へ。本文が多いと発話開始まで時間がかかるので、
+    // その間「再生」のままだと「押し損なった?」と再タップしてしまうのを防ぐ。
+    // 実際に発話できなかった場合は notifyIfNothingToSpeak() が "idle" に戻す。
+    // 万一開始が取れずスピナーのまま固まっても、もう一度押せば RunStopSpeech →
+    // StopSpeech 受信で "idle" に戻るので詰まらない(自己回復する)。
+    setFabState("preparing");
     chrome.runtime.sendMessage({"type": "RunStartSpeech"});
   }
 }
 
-// 表示モードと発話/選択状態に応じて FAB を出し分ける。
+// 表示モードと発話/選択状態に応じて FAB を出し分ける(アイコン自体は renderFabIcon が担当)。
 // 発話中はハイライトのために選択が頻繁に書き換わる(selectionchange 連発)ので、
-// 値が変わった時だけ DOM を触る。さもないとクリック中に文字ノードが差し替わって
-// 中央のタップが取りこぼされる。
+// 値が変わった時だけ DOM を触る。
 function updateFabButton(){
   let mode = resolveFabMode();
   if(mode === "hidden"){
@@ -948,12 +1145,11 @@ function updateFabButton(){
   }
   ensureFabCreated();
   if(!fabButtonElement){ return; }
-  let visible = (mode === "always") || fabIsSpeaking || (mode === "selection" && hasMeaningfulSelection());
+  let active = (fabState !== "idle"); // 準備中 or 発話中
+  let visible = (mode === "always") || active || (mode === "selection" && hasMeaningfulSelection());
   let display = visible ? "block" : "none";
   if(fabHostElement.style.display !== display){ fabHostElement.style.display = display; }
-  let label = fabIsSpeaking ? "■" : "▶"; // ■ / ▶
-  if(fabButtonElement.textContent !== label){ fabButtonElement.textContent = label; }
-  let opacity = fabIsSpeaking ? "0.95" : "0.85";
+  let opacity = active ? "0.95" : "0.85";
   if(fabButtonElement.style.opacity !== opacity){ fabButtonElement.style.opacity = opacity; }
 }
 
@@ -1011,6 +1207,47 @@ function applyForceTextSelection(){
     forceSelectStyleElement.remove();
     forceSelectStyleElement = null;
   }
+}
+
+// --- 一時表示トースト(数秒でフェードアウト) ---
+// Google Docs のように Canvas で本文を描画していてテキストを取り出せないページなど、
+// 「読み上げられるものが無かった」時に静かに無反応で終わらず、軽く知らせる用途。
+var toastHostElement = null;
+var toastInnerElement = null;
+var toastHideTimer = null;
+function showTransientToast(messageText){
+  if(!document.body){ return; }
+  if(!toastHostElement){
+    toastHostElement = document.createElement("div");
+    toastHostElement.style.cssText =
+      "all: initial; position: fixed; z-index: 2147483647; left: 50%;" +
+      "bottom: calc(env(safe-area-inset-bottom, 0px) + 80px); transform: translateX(-50%); display: none;";
+    let shadow = toastHostElement.attachShadow({mode: "open"});
+    toastInnerElement = document.createElement("div");
+    toastInnerElement.style.cssText =
+      "all: initial; display: block; box-sizing: border-box; max-width: 80vw;" +
+      "padding: 10px 16px; border-radius: 8px; font-family: sans-serif; font-size: 14px; line-height: 1.4;" +
+      "color: #fff; background: rgba(0,0,0,0.8); box-shadow: 0 2px 8px rgba(0,0,0,0.4);" +
+      "text-align: center; opacity: 0; transition: opacity 0.3s;";
+    shadow.appendChild(toastInnerElement);
+    document.body.appendChild(toastHostElement);
+  }
+  toastInnerElement.textContent = messageText;
+  toastHostElement.style.display = "block";
+  requestAnimationFrame(function(){ toastInnerElement.style.opacity = "0.95"; }); // フェードイン
+  if(toastHideTimer){ clearTimeout(toastHideTimer); }
+  toastHideTimer = setTimeout(function(){
+    toastInnerElement.style.opacity = "0"; // フェードアウト
+    setTimeout(function(){ if(toastHostElement){ toastHostElement.style.display = "none"; } }, 350);
+  }, 2800);
+}
+
+// runSpeech() が何も発話できなかった(=読み上げ対象テキストが無かった)時に知らせる。
+function notifyIfNothingToSpeak(didStart){
+  if(didStart){ return; }
+  setFabState("idle"); // 準備中スピナーにしていた場合は「再生」へ戻す
+  let msg = chrome.i18n.getMessage("ContentNoReadableTextMessage");
+  showTransientToast(msg || "読み上げられるテキストが見つかりませんでした。");
 }
 
 // 設定読み込み後・変更時に呼ばれる初期化(ジェスチャ登録は一度きり)。

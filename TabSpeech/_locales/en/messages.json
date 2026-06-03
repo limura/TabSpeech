@@ -145,5 +145,11 @@
   },
   "OptionsPageForceTextSelectionLabel": {
     "message": "Allow text selection even on pages that block it"
+  },
+  "OptionsPageTouchGestureNote": {
+    "message": "* May conflict with other two-finger gestures (zooming out on maps, accessibility gestures such as VoiceOver / TalkBack)."
+  },
+  "ContentNoReadableTextMessage": {
+    "message": "No readable text was found."
   }
 }

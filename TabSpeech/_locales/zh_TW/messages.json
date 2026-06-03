@@ -145,5 +145,11 @@
   },
   "OptionsPageForceTextSelectionLabel": {
     "message": "在禁止選取的頁面上也允許選取文字"
+  },
+  "OptionsPageTouchGestureNote": {
+    "message": "※ 可能與其他雙指操作(地圖縮小、VoiceOver / TalkBack 等輔助使用操作)衝突。"
+  },
+  "ContentNoReadableTextMessage": {
+    "message": "找不到可朗讀的文字。"
   }
 }

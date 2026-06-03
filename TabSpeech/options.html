@@ -1,5 +1,7 @@
 <html>
 <head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
 <div data-i18n-text="OptionsPageAnnounceTitle"></div>
@@ -47,6 +49,9 @@ Speaker: <span id="langSelector">
 <label for="isAutopagerizeContinueEnabled" style="cursor: pointer"><input type="checkbox" id="isAutopagerizeContinueEnabled" name="isAutopagerizeContinueEnabled" value="1"/><span data-i18n-text="OptionsPageIsAutopageizeContinueEnabledText">実験的機能：読み終わった時に読み上げられるものが追加されていたら追加分を読み上げる。(Autopagerizeと合わせる場合に嬉しくなるかもしれません。なお、現状この機能は不確定要素が色々ありますので安定動作ができないものと考えて下さい)</span></label>
 </div>
 <div>
+<label for="forceTextSelection" style="cursor: pointer"><input type="checkbox" id="forceTextSelection" name="forceTextSelection" value="1"/><span data-i18n-text="OptionsPageForceTextSelectionLabel">選択できないページでもテキストを選択可能にする</span></label>
+</div>
+<div>
     <span data-i18n-text="OptionsPageIsStartSpeechClickEnabled">
         2つのボタンクリック(同時押し)で読み上げを開始する
     </span>
@@ -83,13 +88,11 @@ Speaker: <span id="langSelector">
 <div>
     <span data-i18n-text="OptionsPageTouchGestureLabel">2本指タップで読み上げ開始/停止</span>
     <select id="touchGestureMode">
-        <option value="auto" data-i18n-text="OptionsPageTouchGestureAuto">自動(タッチ端末で有効)</option>
-        <option value="on" data-i18n-text="OptionsPageTouchGestureOn">有効</option>
         <option value="off" data-i18n-text="OptionsPageTouchGestureOff">無効</option>
+        <option value="on" data-i18n-text="OptionsPageTouchGestureOn">有効</option>
+        <option value="auto" data-i18n-text="OptionsPageTouchGestureAuto">自動(タッチ端末で有効)</option>
     </select>
-</div>
-<div>
-    <label for="forceTextSelection" style="cursor: pointer"><input type="checkbox" id="forceTextSelection" name="forceTextSelection" value="1"/><span data-i18n-text="OptionsPageForceTextSelectionLabel">選択できないページでもテキストを選択可能にする</span></label>
+    <div style="font-size: 0.85em; color: #666; text-indent: 1.1em;" data-i18n-text="OptionsPageTouchGestureNote">※ 他の2本指操作(地図のズームアウト、VoiceOver / TalkBack などのアクセシビリティ操作)と干渉する可能性があります。</div>
 </div>
 </div>
 <hr>
