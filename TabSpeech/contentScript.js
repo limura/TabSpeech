@@ -64,10 +64,10 @@ function ResumeSpeech(){
 }
 
 function CreateVoiceSettingFromMessage(message) {
-  return CreateVoiceSetting(message.lang, message.voice, message.pitch, message.rate, message.volume, message.isScrollEnabled, message.isAutopagerizeContinueEnabled, message.convertTable, message.regexpConvertTable, message.scrollPositionRatio);
+  return CreateVoiceSetting(message.lang, message.voice, message.pitch, message.rate, message.volume, message.isScrollEnabled, message.isAutopagerizeContinueEnabled, message.convertTable, message.regexpConvertTable, message.scrollPositionRatio, message.scrollDeadZoneRatio);
 }
 
-function CreateVoiceSetting(lang, voice, pitch, rate, volume, isScrollEnabled, isAutopagerizeContinueEnabled, convertTable, regexpConvertTable, scrollPositionRatio){
+function CreateVoiceSetting(lang, voice, pitch, rate, volume, isScrollEnabled, isAutopagerizeContinueEnabled, convertTable, regexpConvertTable, scrollPositionRatio, scrollDeadZoneRatio){
   return {
     "lang": lang,
     "voice": voice,
@@ -79,6 +79,7 @@ function CreateVoiceSetting(lang, voice, pitch, rate, volume, isScrollEnabled, i
     "convertTable": convertTable,
     "regexpConvertTable": regexpConvertTable,
     "scrollPositionRatio": scrollPositionRatio,
+    "scrollDeadZoneRatio": scrollDeadZoneRatio,
   };
 }
 
@@ -114,6 +115,14 @@ function GetPageElementArray(SiteInfo){
 let autoScrollActive = 1;
 let autoScrollTimeout = null;
 const PAUSE_DURATION = 4000; // 4秒間スクロールがない場合は自動スクロールを停止する
+// 読み上げ位置が既に画面内の快適な範囲にあるときは再スクロールしないための許容幅(ビューポート高に対する割合)の既定値。
+// オプションの「強制スクロールの追従のゆとり」(scrollDeadZoneRatio)が未設定のときに使う。
+// スクロール量でページ高さが変わるサイト(折りたたみヘッダー等)があると、毎boundaryで厳密に
+// 再センタリングするたびに高さがズレて目標が動き、スクロールが上下にガクガク振動する(リミットサイクル)。
+// この不感帯(デッドゾーン)で微小な補正スクロールを抑止して振動を断ち切る。値は典型的なヘッダー高(数十px)
+// を十分上回るように取り、読み進めて行がこの幅を超えて流れたときだけ滑らかに再センタリングする。
+// 0 にすると不感帯が無くなり、従来どおり1行ごとに厳密追従する(ガクつき対策は無効)。
+const SCROLL_DEAD_ZONE_RATIO = 0.1;
 
 function detectUserScroll() {
   // 自動スクロールを一時停止
@@ -149,7 +158,7 @@ function setupScrollDetection() {
 }
 setupScrollDetection();
 
-function ScrollToElement(element, index, margin) {
+function ScrollToElement(element, index, margin, deadZoneRatio = SCROLL_DEAD_ZONE_RATIO) {
   if (!autoScrollActive) {
     const localStorage = chromeStorageCache;
     const isDelayAutoScrollEnabled = localStorage["isDelayAutoScrollEnabled"] != "false";
@@ -169,6 +178,11 @@ function ScrollToElement(element, index, margin) {
   let y = window.scrollY + rect.top - window.innerHeight + yMargin;
   if(rect.x == 0 && rect.y == 0) { return; }
   if(y < -window.innerHeight){ return; }
+  // 読み上げ位置が既に快適な範囲(不感帯)に収まっているなら再スクロールしない。
+  // (y - window.scrollY) は「現在の行が目標の縦位置からどれだけズレているか」のpx。これが不感帯内なら
+  // 微小な補正を打たず、スクロール量依存でページ高が変わるサイトでの上下振動(ガクガク)を防ぐ。
+  // deadZoneRatio は 0 で無効化(従来どおり厳密追従)。
+  if(Math.abs(y - window.scrollY) <= window.innerHeight * deadZoneRatio){ return; }
   //console.log("scrollTo:", y, window.scrollY, rect.top, window.innerHeight, yMargin, margin, rect.y, rect.top, rect);
   //window.scrollTo({left: x, top: y, behavior: "smooth"});
   window.scrollTo({top: y, behavior: "smooth"});
@@ -573,6 +587,18 @@ function GetScrollRatio(voiceSetting) {
   return 0.65;
 }
 
+// 強制スクロールの不感帯(デッドゾーン)の割合を返す。0 は有効な値(従来どおり厳密追従)なので、
+// GetScrollRatio と違い 0 を「未設定」と取り違えないよう、値の有無と数値妥当性で判定する。
+function GetScrollDeadZoneRatio(voiceSetting) {
+  if("scrollDeadZoneRatio" in voiceSetting) {
+    let ratio = parseFloat(voiceSetting.scrollDeadZoneRatio);
+    if(!isNaN(ratio) && ratio >= 0){
+      return ratio;
+    }
+  }
+  return SCROLL_DEAD_ZONE_RATIO;
+}
+
 let speechEventHandlerHolder = {};
 function SpeechOnBoundary(event){
   // 最初の boundary = 実際に音声が出始めた合図(onstart は iOS で早すぎるため使わない)。
@@ -631,7 +657,7 @@ function SpeechWithPageElementArray(elementArray, index, voiceSetting, SiteInfo,
       : elementData.text.length;
       HighlightSpeechSentence(elementData.element, elementData.index, endElementData.element, endElementIndex);
       if(voiceSetting.isScrollEnabled == "true"){ // localStorage には boolean が入らないぽいので文字列で入れている
-        ScrollToElement(elementData.element, elementData.index, GetScrollRatio(voiceSetting));
+        ScrollToElement(elementData.element, elementData.index, GetScrollRatio(voiceSetting), GetScrollDeadZoneRatio(voiceSetting));
       }
     }
     BoundarySpeechEventHandle(elementArray, event);

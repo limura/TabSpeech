@@ -45,6 +45,10 @@ Speaker: <span id="langSelector">
 <div style="text-indent: 1.1vw;">
     <label for="isDelayAutoScrollEnabled" style="cursor: pointer"><input type="checkbox" id="isDelayAutoScrollEnabled" name="isDelayAutoScrollEnabled" value="1"/><span data-i18n-text="OptionsPageIsDelayAutoScrollEnabledText">Temporarily stop auto-scrolling with mouse wheel, keyboard up/down/left/right keys, etc.</span></label>
 </div>
+<div style="text-indent: 1.1vw;">
+    <span data-i18n-text="OptionsPageScrollDeadZoneRatioTitle">scroll follow looseness</span>: <input type="range" name="scrollDeadZoneRatio" id="scrollDeadZoneRatio" min="0" max="0.3" step="0.01" value="0.1"/> <span id="scrollDeadZoneRatioValue"></span>
+    <br><span data-i18n-text="OptionsPageScrollDeadZoneRatioNote" style="font-size: smaller; color: #666;">0 で従来どおり1行ごとに追従します。大きくするほどゆったり追従し、一部サイトで起きるスクロールのガクつきを抑えます(小さくし過ぎるとサイトによってはガクつくことがあります)。</span>
+</div>
 <div>
 <label for="isAutopagerizeContinueEnabled" style="cursor: pointer"><input type="checkbox" id="isAutopagerizeContinueEnabled" name="isAutopagerizeContinueEnabled" value="1"/><span data-i18n-text="OptionsPageIsAutopageizeContinueEnabledText">実験的機能：読み終わった時に読み上げられるものが追加されていたら追加分を読み上げる。(Autopagerizeと合わせる場合に嬉しくなるかもしれません。なお、現状この機能は不確定要素が色々ありますので安定動作ができないものと考えて下さい)</span></label>
 </div>

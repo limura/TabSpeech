@@ -242,7 +242,7 @@ async function RunStartSpeech(tabId, url, kickType){
   let convertTables = await GetConvertTables();
   chrome.storage.local.get([
     "lang", "voice", "pitch", "rate", "volume"
-    , "isScrollEnabled", "isAutopagerizeContinueEnabled", "scrollPositionRatio"
+    , "isScrollEnabled", "isAutopagerizeContinueEnabled", "scrollPositionRatio", "scrollDeadZoneRatio"
   ], (localStorage) => {
     chromeTabsSendMessageWrap(tabId, {
       "type": kickType,
@@ -257,6 +257,7 @@ async function RunStartSpeech(tabId, url, kickType){
       "convertTable": convertTables[0],
       "regexpConvertTable": convertTables[1],
       "scrollPositionRatio": localStorage["scrollPositionRatio"],
+      "scrollDeadZoneRatio": localStorage["scrollDeadZoneRatio"],
     });
   })
 }

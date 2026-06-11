@@ -117,6 +117,10 @@ function getScrollPositionRatio(){
   return document.getElementById("scrollPositionRatio").value;
 }
 
+function getScrollDeadZoneRatio(){
+  return document.getElementById("scrollDeadZoneRatio").value;
+}
+
 function getIsAutopagerizeContinueEnabled(){
   return document.getElementById("isAutopagerizeContinueEnabled").checked ? "true" : "false";
 }
@@ -196,6 +200,7 @@ function saveButtonClicked(voices, savedInformationElement){
     "volume": getVolume(),
     "isScrollEnabled": getIsScrollEnabled(),
     "scrollPositionRatio": getScrollPositionRatio(),
+    "scrollDeadZoneRatio": getScrollDeadZoneRatio(),
     "isAutopagerizeContinueEnabled": getIsAutopagerizeContinueEnabled(),
     "convertTableURL": getConvertTableURL(),
     "regexpConvertTableURL": getRegexpConvertTableURL(),
@@ -233,6 +238,7 @@ function loadSettings(voices){
     "volume",
     "isScrollEnabled",
     "scrollPositionRatio",
+    "scrollDeadZoneRatio",
     "isAutopagerizeContinueEnabled",
     "convertTableURL",
     "regexpConvertTableURL",
@@ -279,6 +285,11 @@ function loadSettings(voices){
     if("scrollPositionRatio" in localStorage){
       document.getElementById("scrollPositionRatio").value = localStorage.scrollPositionRatio;
     }
+    if("scrollDeadZoneRatio" in localStorage){
+      document.getElementById("scrollDeadZoneRatio").value = localStorage.scrollDeadZoneRatio;
+    }
+    // 未設定でも HTML 既定値(0.1)が数値として見えるよう、スライダーの現在値を表示に反映する。
+    document.getElementById("scrollDeadZoneRatioValue").innerHTML = document.getElementById("scrollDeadZoneRatio").value;
     if("isAutopagerizeContinueEnabled" in localStorage){
       let isAutopagerizeContinueEnabled = localStorage.isAutopagerizeContinueEnabled;
       if(isAutopagerizeContinueEnabled == "false"){
@@ -417,6 +428,7 @@ async function init(){
   };
   document.getElementById("voiceSettingReset").onclick = clearSettings;
   initRateValueWatcher("rate", "rateValue");
+  initRateValueWatcher("scrollDeadZoneRatio", "scrollDeadZoneRatioValue");
   initRateMaxStrechExtension("rate", "rateValue", "isRateMaxStrech", "isRateMaxStrechWarningText");
   loadSettings(voices);
 };

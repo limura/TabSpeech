@@ -56,6 +56,12 @@
   "OptionsPageScrollPositionRatioTitle": {
     "message": "强制滚动时屏幕上的垂直位置"
   },
+  "OptionsPageScrollDeadZoneRatioTitle": {
+    "message": "强制滚动的跟随余量"
+  },
+  "OptionsPageScrollDeadZoneRatioNote": {
+    "message": "0 时与以往一样逐行跟随。值越大跟随越宽松，可抑制部分网站出现的滚动抖动(设得过小在某些网站仍可能抖动)。"
+  },
   "OptionsPageIsAutopageizeContinueEnabledText": {
     "message": "实验性功能：如果读完后大声朗读，则会读出添加的内容。 （当您将其与Autopagerize匹配时，您可能会感到高兴。请注意，此功能目前存在各种不确定因素，因此无法稳定运行）"
   },
