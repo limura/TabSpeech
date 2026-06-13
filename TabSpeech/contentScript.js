@@ -196,7 +196,10 @@ function ScrollToIndex(index, margin){
 }
 
 function HighlightSpeechSentence(element, index, endElement, endIndex){
-  if(!document.contains(element)) { return; }
+  // element.isConnected は light DOM でも Shadow DOM でも「ツリーに繋がっているか」を返す。
+  // document.contains() は Shadow DOM 内のノードに対して false になり、MSN 等の本文(Shadow
+  // DOM 内)でハイライトがスキップされてしまうため、isConnected で判定する。
+  if(!element.isConnected) { return; }
   //element.parentNode.scrollIntoView(true); // TEXT_NODE には scrollIntoView が無いっぽい(´・ω・`)
   let range = new Range();
   //range.selectNodeContents(element); // selectNodeContents() では子要素が無いと駄目
@@ -204,7 +207,7 @@ function HighlightSpeechSentence(element, index, endElement, endIndex){
   if(element && index > 0){
     range.setStart(element, index);
   }
-  if(endElement && endIndex > 0 && document.contains(endElement)){
+  if(endElement && endIndex > 0 && endElement.isConnected){
     try {
       // TODO: 怪しく末尾に「。」を追加しているので setEnd() については範囲外になる可能性があるので例外を握りつぶしています
       range.setEnd(endElement, endIndex);
@@ -229,6 +232,12 @@ function BoundarySpeechEventHandle(element, event){
 
 function isNotSpeechElement(element){
   if(element instanceof HTMLElement){
+    // TabSpeech 自身が挿入した UI(FAB・トースト・強制選択用 style)は読み上げ対象から除外する。
+    // Shadow DOM を貫通して抽出するようになったため、明示的に弾かないと FAB のつまみ("⠿")等が
+    // 本文に混ざってしまう(id はすべて "tabspeech-" 始まりで付けてある)。
+    if(element.id && typeof element.id === "string" && element.id.indexOf("tabspeech-") === 0){
+      return true;
+    }
     switch(element.tagName){
     case "SCRIPT":
     case "NOSCRIPT":
@@ -252,11 +261,32 @@ function isNotSpeechElement(element){
   return false;
 }
 
+// 抽出時に辿るべき子ノード列を返す。
+// - open な Shadow DOM を持つ要素は、実際に描画されるシャドウツリー(shadowRoot)を辿る。
+//   これで MSN(<cp-article> 等の Web Components で本文を Shadow DOM 内に描画するサイト)でも
+//   本文を抽出できる。素の childNodes は light DOM しか見えず、本文が一切取れなかった。
+// - <slot> はそこへ割り当てられた実ノード(assignedNodes)へ展開する。これでスロット投影された
+//   light DOM の内容も描画順どおりに拾える(shadowRoot 経由で二重に拾うことはない)。
+// 閉じた(closed)Shadow DOM は shadowRoot が取れないので従来どおり貫通できない。
+function getExtractionChildNodes(element){
+  if(element.shadowRoot){
+    return element.shadowRoot.childNodes;
+  }
+  if(element.tagName === "SLOT" && typeof element.assignedNodes === "function"){
+    let assigned = element.assignedNodes();
+    if(assigned && assigned.length > 0){
+      return assigned;
+    }
+  }
+  return element.childNodes;
+}
+
 function extractElement(element){
   if(isNotSpeechElement(element)){
     return [];
   }
-  if(element.childNodes.length <= 0){
+  let childNodes = getExtractionChildNodes(element);
+  if(childNodes.length <= 0){
     var text = "";
     if(element.nodeType == Node.TEXT_NODE){
       text = element.textContent;
@@ -269,8 +299,8 @@ function extractElement(element){
     return [{"element": element, "text": text}];
   }
   var elementArray = [];
-  for(var i = 0; i < element.childNodes.length; i++){
-    let childNode = element.childNodes[i];
+  for(var i = 0; i < childNodes.length; i++){
+    let childNode = childNodes[i];
     elementArray = elementArray.concat(extractElement(childNode))
   }
   return elementArray;
@@ -367,6 +397,25 @@ function SearchElementFromIndex(elementArray, index){
 // elementArray から range で示された範囲を先頭とする elementArray と、その先頭の index を返す
 // 返されるのは {"elementArray": , "index": } の形式で、発見できなかった場合は undefined が返る
 function SplitElementFromSelection(elementArray, range){
+  // まず選択(キャレット)開始ノードに「正確に一致」する葉を探す。これは Shadow DOM 内の
+  // 選択でも light DOM の選択でも確実に効き、後段の compareBoundaryPoints がツリーをまたぐと
+  // 例外(WrongDocumentError)になる問題も避けられる。MSN 等の Web Components サイト
+  // (本文が Shadow DOM 内にある)で選択位置から読み始めるための本命の経路。
+  let startContainer = range.startContainer;
+  for(var hitIndex = 0; hitIndex < elementArray.length; hitIndex++){
+    let element = elementArray[hitIndex]["element"];
+    if(element === startContainer
+       || (element.nodeType === Node.ELEMENT_NODE && element.contains && element.contains(startContainer))){
+      var startIndex = (startContainer.nodeType === Node.TEXT_NODE) ? range.startOffset : 0;
+      if(elementArray[hitIndex]["text"].length < startIndex){ startIndex = 0; }
+      return {"elementArray": elementArray.slice(hitIndex), "index": startIndex};
+    }
+  }
+
+  // 正確一致しない場合(要素の境界・空白上にキャレットがある等)は、従来どおり境界比較で
+  // 「選択先頭を含む/横切った」葉を探す。ただし選択範囲と別ツリー(別の Shadow root や
+  // light DOM)にある葉とは比較できず compareBoundaryPoints が例外を投げるので、その葉は
+  // 先頭判定の対象から外して読み飛ばす。
   var resultArray = [];
   var isHit = false;
   var index = 0;
@@ -387,8 +436,14 @@ function SplitElementFromSelection(elementArray, range){
       continue;
     }
     //console.log("compare", elementRange.compareBoundaryPoints(Range.START_TO_START, range), elementRange.compareBoundaryPoints(Range.START_TO_END, range));
-    let START_TO_START = elementRange.compareBoundaryPoints(Range.START_TO_START, range)
-    let START_TO_END = elementRange.compareBoundaryPoints(Range.START_TO_END, range)
+    var START_TO_START, START_TO_END;
+    try {
+      START_TO_START = elementRange.compareBoundaryPoints(Range.START_TO_START, range)
+      START_TO_END = elementRange.compareBoundaryPoints(Range.START_TO_END, range)
+    } catch(e){
+      // 選択範囲と別ツリーにある葉は比較不能。先頭判定には使えないので飛ばす。
+      continue;
+    }
     // elementRange の中に range の先頭部分が入っている場合(START_TO_START <= 0 && START_TO_END >= 0)
     // または、前回は elementRange の末尾が range の先頭部分より前(prevSTART_TO_START == -1 && prevSTART_TO_END == -1)で、かつ
     // 今回 elementRange の末尾が range の先頭部分より後(START_TO_START == 1 && START_TO_END == 1)であれば、
@@ -404,8 +459,8 @@ function SplitElementFromSelection(elementArray, range){
         index = 0;
       }
     }
-    prevSTART_TO_START = elementRange.compareBoundaryPoints(Range.START_TO_START, range)
-    prevSTART_TO_END = elementRange.compareBoundaryPoints(Range.START_TO_END, range)
+    prevSTART_TO_START = START_TO_START;
+    prevSTART_TO_END = START_TO_END;
   }
   if(resultArray.length <= 0){
     return undefined;
@@ -1245,6 +1300,7 @@ function showTransientToast(messageText){
   if(!document.body){ return; }
   if(!toastHostElement){
     toastHostElement = document.createElement("div");
+    toastHostElement.id = "tabspeech-toast-host"; // 本文抽出(Shadow DOM 貫通)から除外するため
     toastHostElement.style.cssText =
       "all: initial; position: fixed; z-index: 2147483647; left: 50%;" +
       "bottom: calc(env(safe-area-inset-bottom, 0px) + 80px); transform: translateX(-50%); display: none;";
