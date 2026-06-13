@@ -744,6 +744,166 @@ function SpeechWithPageElementArray(elementArray, index, voiceSetting, SiteInfo,
   return true;
 }
 
+// ===========================================================================
+// 本文コンテナの自動推定(軽量ヒューリスティック)
+//   選択もされておらず SiteInfo(本文 XPath)も無いページで「開始」したとき、ページ全体を
+//   先頭(ナビ等)から読み始めてしまうのを避けるため、本文らしいブロックを推定してそこを
+//   開始位置にする。Readability の採点を簡略化したもので、テキスト量・句読点・リンク密度・
+//   class/id・カスタム要素名のヒントでブロックを採点する。
+//   ニュース記事・ブログ・フィードでは有効。見出しごとに <section> 分割される巨大記事
+//   (Wikipedia 等)は苦手で導入部を飛ばすことがある。確実に読みたい所は範囲選択で指定する。
+// ===========================================================================
+
+// Shadow DOM 境界(host)を越えて親要素を辿る。
+function composedParentElement(node){
+  let p = node.parentNode;
+  while(p && p.nodeType !== Node.ELEMENT_NODE){
+    p = p.host ? p.host : p.parentNode; // ShadowRoot(DocumentFragment)→ host へ
+  }
+  return p;
+}
+
+// ancestor が node を(Shadow DOM 境界を越えて)内包するか。
+function composedContains(ancestor, node){
+  let p = node;
+  var guard = 0;
+  while(p && guard++ < 500){
+    if(p === ancestor){ return true; }
+    if(p.parentNode){
+      p = p.parentNode;
+      if(p && p.nodeType === 11){ p = p.host; } // DocumentFragment(ShadowRoot)→ host へ
+    }else if(p.host){
+      p = p.host;
+    }else{
+      break;
+    }
+  }
+  return false;
+}
+
+const CONTENT_POSITIVE_RE = /(article|body|content|entry|main|post|text|story|paragraph)/i;
+const CONTENT_NEGATIVE_RE = /(comment|combx|disqus|foot|header|menu|meta|nav|rss|shout|sidebar|sponsor|ad-|advert|promo|social|share|breadcrumb|related|recommend|widget|banner|rail)/i;
+
+function contentTagScore(tagName){
+  switch(tagName){
+    case "DIV": case "SECTION": case "ARTICLE": case "MAIN": return 5;
+    case "PRE": case "TD": case "BLOCKQUOTE": return 3;
+    case "ADDRESS": case "OL": case "UL": case "DL": case "DD": case "DT": case "LI": case "FORM": return -3;
+    case "H1": case "H2": case "H3": case "H4": case "H5": case "H6": case "TH": return -5;
+    default: return 0;
+  }
+}
+
+function contentClassWeight(el){
+  var s = 0;
+  let str = ((el.className && typeof el.className === "string") ? el.className : "") + " " + (el.id || "");
+  if(CONTENT_NEGATIVE_RE.test(str)){ s -= 25; }
+  if(CONTENT_POSITIVE_RE.test(str)){ s += 25; }
+  // カスタム要素名(Web Components)のヒント。MSN の <cp-article> 等を拾い、ナビ系を弾く。
+  let tn = el.tagName ? el.tagName.toLowerCase() : "";
+  if(/(^|-)(article|content|story|post|body|reader)(-|$)/.test(tn)){ s += 25; }
+  if(/(^|-)(nav|header|footer|rail|ad|ads|promo|banner|related|recommend)(-|$)/.test(tn)){ s -= 25; }
+  return s;
+}
+
+// elementArray(本文抽出済みの葉)から本文らしいコンテナ要素を1つ推定して返す。無ければ null。
+function estimateMainContentElement(elementArray){
+  if(!elementArray || elementArray.length <= 0){ return null; }
+  // 葉ごとのメタ: テキスト長 と リンク(<a>)内かどうか。
+  let leaves = elementArray.map(function(data){
+    let len = (data.text || "").trim().length;
+    let inLink = false;
+    let p = composedParentElement(data.element);
+    var guard = 0;
+    while(p && p !== document.body && guard++ < 40){
+      if(p.tagName === "A"){ inLink = true; break; }
+      p = composedParentElement(p);
+    }
+    return {node: data.element, len: len, inLink: inLink};
+  }).filter(function(o){ return o.len > 0; });
+  if(leaves.length <= 0){ return null; }
+
+  // 各葉のスコアを「段落の親・祖父」へ伝播する(本体側 extractElement とは別の採点専用処理)。
+  let score = new Map();
+  function ensure(el){ if(!score.has(el)){ score.set(el, contentTagScore(el.tagName) + contentClassWeight(el)); } }
+  for(let lf of leaves){
+    let cs = 1;
+    cs += ((lf.node.textContent || "").match(/[,，、。]/g) || []).length; // 句読点が多い=散文=本文っぽい
+    cs += Math.min(Math.floor(lf.len / 100), 3);                        // 長文ほど加点(上限あり)
+    let para = composedParentElement(lf.node);
+    if(!para){ continue; }
+    let parent = composedParentElement(para);
+    let grand = parent ? composedParentElement(parent) : null;
+    if(parent){ ensure(parent); score.set(parent, score.get(parent) + cs); }
+    if(grand){ ensure(grand); score.set(grand, score.get(grand) + cs / 2); }
+  }
+  if(score.size <= 0){ return null; }
+
+  // 上位候補のみリンク密度で最終化する(全候補に内包判定を回すのは重いので上位に絞る)。
+  let candidates = Array.from(score.entries()).sort(function(a, b){ return b[1] - a[1]; }).slice(0, 12);
+  let scored = [];
+  for(let entry of candidates){
+    let el = entry[0];
+    let total = 0, linkLen = 0;
+    for(let lf of leaves){
+      if(composedContains(el, lf.node)){ total += lf.len; if(lf.inLink){ linkLen += lf.len; } }
+    }
+    if(total <= 0){ continue; }
+    let linkDensity = linkLen / total;
+    scored.push({el: el, finalScore: entry[1] * (1 - linkDensity), linkDensity: linkDensity, total: total});
+  }
+  if(scored.length <= 0){ return null; }
+
+  let maxFinal = scored.reduce(function(m, o){ return o.finalScore > m ? o.finalScore : m; }, -Infinity);
+  // 「十分に本文らしい」候補に限定する: 最高スコアの半分以上 / リンク密度が低め / ある程度の文量。
+  let qualified = scored.filter(function(o){
+    return o.finalScore >= 0.5 * maxFinal && o.linkDensity < 0.3 && o.total >= 300;
+  });
+  if(qualified.length <= 0){
+    qualified = [scored.slice().sort(function(a, b){ return b.finalScore - a.finalScore; })[0]];
+  }
+
+  // ビューポート上側優先: まだ読み終えていない(下端が現在のスクロール位置より下にある)候補のうち
+  // 最も上にあるもの=今まさに読もうとしている記事を選ぶ。フィード(複数記事)で「見ている記事」を当てる。
+  let scrollY = window.scrollY;
+  function absRect(el){
+    try{ let r = el.getBoundingClientRect(); return {top: r.top + scrollY, bottom: r.bottom + scrollY}; }
+    catch(e){ return null; }
+  }
+  let withRect = qualified.map(function(o){ return {o: o, rect: absRect(o.el)}; }).filter(function(x){ return x.rect; });
+  if(withRect.length <= 0){
+    return qualified.slice().sort(function(a, b){ return b.finalScore - a.finalScore; })[0].el;
+  }
+  let notPassed = withRect.filter(function(x){ return x.rect.bottom > scrollY; });
+  let pool = (notPassed.length > 0) ? notPassed : withRect;
+  pool.sort(function(a, b){ return a.rect.top - b.rect.top; }); // 上にあるものを優先
+  return pool[0].o.el;
+}
+
+// 推定した本文コンテナの先頭の葉に対応する、連結テキスト上の開始 index を返す(無ければ 0)。
+function estimateMainContentStartIndex(elementArray){
+  try{
+    let container = estimateMainContentElement(elementArray);
+    if(!container){ return 0; }
+    var index = 0;
+    for(var i = 0; i < elementArray.length; i++){
+      if(composedContains(container, elementArray[i].element)){ return index; }
+      index += elementArray[i].text.length;
+    }
+    return 0;
+  }catch(e){
+    //console.log("estimateMainContentStartIndex error", e);
+    return 0;
+  }
+}
+
+// この SiteInfo が「本文 XPath 指定の無い汎用フォールバック」(//body や *)かどうか。
+// 本文コンテナ推定は、選択もこの種のフォールバックも無いとき=何の手がかりも無いときだけ使う。
+function isGenericFallbackSiteInfo(SiteInfo){
+  let pe = (SiteInfo && SiteInfo.data) ? SiteInfo.data.pageElement : undefined;
+  return pe === "//body" || pe === "*";
+}
+
 function runSpeechWithSiteInfo(SiteInfo, voiceSetting, isSpeechSelectionOnly){
   var elementArray = extractElementForPageElementArray(GetPageElementArray(SiteInfo));
   //console.log("SiteInfo", SiteInfo, "elementArray", elementArray);
@@ -763,6 +923,12 @@ function runSpeechWithSiteInfo(SiteInfo, voiceSetting, isSpeechSelectionOnly){
     if(isSpeechSelectionOnly){
       maxLength = selection.toString().length
     }
+  }else if(isGenericFallbackSiteInfo(SiteInfo)){
+    // 範囲選択も無く、本文 XPath の手がかり(SiteInfo)も無い場合だけ、本文らしいブロックを
+    // 推定してそこを開始位置にする(先頭のナビ等を飛ばして本文から読み始める)。本文以降は
+    // 末尾まで読む。SiteInfo がある(本文位置が分かっている)ページや、両ボタンクリック等で
+    // キャレット位置が指定されている場合(rangeCount>0)は従来どおりなので影響しない。
+    index = estimateMainContentStartIndex(elementArray);
   }
   if(index >= 0 && elementArray && SpeechWithPageElementArray(elementArray, index, voiceSetting, SiteInfo, maxLength)){
     return true;
