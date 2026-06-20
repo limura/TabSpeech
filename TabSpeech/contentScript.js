@@ -394,6 +394,53 @@ function SearchElementFromIndex(elementArray, index){
   return undefined
 }
 
+// ページ内の open な Shadow root をすべて集める。getComposedRanges に渡すと選択境界が
+// Shadow 内の実ノードのまま返る(渡さないと shadow host へ retarget され実ノードが取れない)。
+function collectOpenShadowRoots(){
+  let roots = [];
+  let stack = [document];
+  while(stack.length){
+    let node = stack.pop();
+    let elements = node.querySelectorAll ? node.querySelectorAll("*") : [];
+    for(let el of elements){
+      if(el.shadowRoot){
+        roots.push(el.shadowRoot);
+        stack.push(el.shadowRoot); // 入れ子の Shadow root も辿る
+      }
+    }
+  }
+  return roots;
+}
+
+// 選択範囲を取得する。**Shadow DOM 内を選択すると** window.getSelection().getRangeAt() は
+// 境界を shadow host(light DOM 側の祖先要素)へ retarget してしまい、実際に選択された
+// Shadow 内のテキストノードが取れない(startContainer が light DOM の <article> 等になる)。
+// その結果 SplitElementFromSelection が選択位置を見つけられず、別の場所(「こちらもおすすめ」等)
+// から読み始めてしまう。getComposedRanges に全 open shadow root を渡すと実ノード境界の
+// StaticRange が得られるので、それを live Range にして返す。MSN 等で「選択位置から読む」ための要。
+function getDeepSelectionRange(selection){
+  if(!selection || selection.rangeCount <= 0){ return null; }
+  let fallback = selection.getRangeAt(0);
+  if(typeof selection.getComposedRanges === "function"){
+    let roots = collectOpenShadowRoots();
+    let candidates = [];
+    // ブラウザによりシグネチャが2形式ある(オプション形式 / 可変長引数形式)。両方試す。
+    try { let c = selection.getComposedRanges({shadowRoots: roots}); if(c && c[0]){ candidates.push(c[0]); } } catch(e){}
+    try { let c = selection.getComposedRanges.apply(selection, roots); if(c && c[0]){ candidates.push(c[0]); } } catch(e){}
+    // Shadow 内の実ノード(テキストノード)に解決できた候補を優先する。
+    let best = candidates.find(function(sr){ return sr.startContainer && sr.startContainer.nodeType === Node.TEXT_NODE; }) || candidates[0];
+    if(best && best.startContainer){
+      try {
+        let live = document.createRange();
+        live.setStart(best.startContainer, best.startOffset);
+        try { live.setEnd(best.endContainer, best.endOffset); } catch(e){ /* 始点と別ツリー等は始点のみ */ }
+        return live;
+      } catch(e){ /* 失敗時は通常の range */ }
+    }
+  }
+  return fallback;
+}
+
 // elementArray から range で示された範囲を先頭とする elementArray と、その先頭の index を返す
 // 返されるのは {"elementArray": , "index": } の形式で、発見できなかった場合は undefined が返る
 function SplitElementFromSelection(elementArray, range){
@@ -412,7 +459,23 @@ function SplitElementFromSelection(elementArray, range){
     }
   }
 
-  // 正確一致しない場合(要素の境界・空白上にキャレットがある等)は、従来どおり境界比較で
+  // 正確一致しないが開始が「要素」の場合: Shadow DOM 内の選択が shadow host(light DOM 側の
+  // 祖先要素)へ retarget され、startContainer が要素になっているケース。getComposedRanges が
+  // 使えず実ノードが取れなかった時の保険として、その要素の部分木に(Shadow 境界を越えて)
+  // 含まれる最初の葉から読み始める。まず startOffset の子subtree(より正確)、無ければ要素全体。
+  if(startContainer.nodeType === Node.ELEMENT_NODE){
+    let childAnchor = startContainer.childNodes[range.startOffset];
+    let anchors = childAnchor ? [childAnchor, startContainer] : [startContainer];
+    for(let anchor of anchors){
+      for(var ai = 0; ai < elementArray.length; ai++){
+        if(composedContains(anchor, elementArray[ai]["element"])){
+          return {"elementArray": elementArray.slice(ai), "index": 0};
+        }
+      }
+    }
+  }
+
+  // それでも見つからない場合(要素の境界・空白上にキャレットがある等)は、従来どおり境界比較で
   // 「選択先頭を含む/横切った」葉を探す。ただし選択範囲と別ツリー(別の Shadow root や
   // light DOM)にある葉とは比較できず compareBoundaryPoints が例外を投げるので、その葉は
   // 先頭判定の対象から外して読み飛ばす。
@@ -911,7 +974,7 @@ function runSpeechWithSiteInfo(SiteInfo, voiceSetting, isSpeechSelectionOnly){
   var index = 0;
   var maxLength = -1
   if(selection.rangeCount > 0){
-    let speechTarget = SplitElementFromSelection(elementArray, selection.getRangeAt(0));
+    let speechTarget = SplitElementFromSelection(elementArray, getDeepSelectionRange(selection));
     //console.log("speechTarget", speechTarget);
     if(speechTarget){
       let wholeText = GenerateWholeText(elementArray, 0);
